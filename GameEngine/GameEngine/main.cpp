@@ -41,12 +41,39 @@ UINT                      g_nDXGIOutputArraySize; //   DXGI出力群サイズ
 IDXGIDevice1*             g_pDXGIDevice;          //   DXGIデバイス
 D3D_FEATURE_LEVEL         g_FeatureLevel;         //   D3D機能レベル
 
+//ポリゴン表示で必要な変数----------
+//GPUで扱う用
+ID3D11VertexShader* g_pVertexShader;   //バーテックスシェーダー
+ID3D11PixelShader*  g_pPixelShader;    //ピクセルシェーダー
+ID3D11InputLayout*  g_pVertexLayout;   //頂点入力レイアウト
+ID3D11Buffer*       g_pConstantBuffer; //コンスタントバッファ
+//ポリゴン情報登録用バッファ
+ID3D11Buffer*       g_pVertexBuffer;   //バーテックスバッファ
+ID3D11Buffer*       g_pIndexBuffer;    //インデックスバッファ
+
+//構造体----------------------
+//頂点レイアウト構造体（頂点が持つ情報）
+struct POINT_LAYOUT
+{
+    float pos[3];  //X-Y-Z  :頂点
+    float color[4];//R-G-B-A:色
+};
+
+//コンスタントバッファ構造体
+struct POLYGON_BUFFER
+{
+    float color[4]; //R-G-B-A:ポリゴンカラー
+};
+
 
 //プロトタイプ変数
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);//ウィンドウプロジージャー
 HRESULT APIENTRY InitDevice(HWND hWnd, int w, int h);//デバイスの初期化
+void ShutDown();            //終了関数
+HRESULT InitPolygonRender();//ポリゴン表示環境の初期化
+void DeletePolygonRender(); //ポリゴン表示環境の破棄
 
-//Main関数
+//Main関数--------------------
 int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmdLine, int nCmdshow)
 {
     //メモリダンプ開始
@@ -68,6 +95,9 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
     //ウィンドウ作成
     CWindowCreate::NewWindow(800, 600, name, hInstance);
 
+    //DirectXデバイスの作成
+    InitDevice(CWindowCreate::GetWnd(), 800, 600);
+
     //メッセージループ
     do
     {
@@ -76,7 +106,21 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
             TranslateMessage(&msg);
             DispatchMessage(&msg);
         }
+        //レンダリングターゲットセットとレンダリング画面クリア
+        float color[] = { 0.0f,0.25f,0.45f,1.0f };
+        g_pDeviceContext->OMSetRenderTargets(1, &g_pRTV, NULL);//レンダリング先をカラーバッファ（バックバッファ）にセット
+        g_pDeviceContext->ClearRenderTargetView(g_pRTV, color);//画面をcolorでクリア
+        g_pDeviceContext->RSSetState(g_pRS);//ラスタライズをセット
+        //ここからレンダリング開始
+
+
+
+        //レンダリング開始
+        g_pDXGISwapChain->Present(1, 0);//60FPSでバックバッファとプライマリバッファの交換
+
     } while (msg.message != WM_QUIT);
+
+    ShutDown();//DirectXデバイスの削除
 
     //この時点で解放されていないメモリの情報を表示
     _CrtDumpMemoryLeaks();
@@ -104,6 +148,80 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM  lParam)
         return 0;
     }
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
+}
+
+//ポリゴン表示環境の初期化
+HRESULT InitPolygonRender()
+{
+    HRESULT hr = S_OK;
+
+    //hlslファイル名
+    const wchar_t* hlsl_name = L"PolygonDraw.hlsl";
+
+    //hlslファイルを読み込み　ブロブ作成　ブロブとはシェーダーの塊みたいなもの
+    //XXシェーダーとして特徴を持たない。後で各種シェーダーとなる
+    ID3DBlob* pCompiledShader = NULL;
+    ID3DBlob* pErrors         = NULL;
+
+    //ブロブからバーテックスシェーダーコンパイル
+    hr = D3DCompileFromFile(hlsl_name, nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+        "vs", "vs_4_0", 0, NULL, &pCompiledShader, &pErrors);
+
+    if (FAILED(hr))
+    {
+        //エラーがある場合、ｃがデバッグ情報を持つ
+        char* c = (char*)pErrors->GetBufferPointer();
+        MessageBox(0, L"hlsl読み込み失敗1", NULL, MB_OK);
+        SAFE_RELEASE(pErrors);
+        return hr;
+    }
+    //コンパイルしたバーデックスシェーダーを元にインターフェースを作成
+    hr = g_pDevice->CreateVertexShader(pCompiledShader->GetBufferPointer(), pCompiledShader->GetBufferSize(),
+       NULL,&g_pVertexShader );
+    if (FAILED(hr))
+    {
+        SAFE_RELEASE(pCompiledShader);
+        MessageBox(0, L"バーテックスシェーダー作成失敗", NULL, MB_OK);
+        return hr;
+    }
+    //頂点インプットレイアウトを定義
+    D3D11_INPUT_ELEMENT_DESC layout[] =
+    {
+        {"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,D3D11_INPUT_PER_VERTEX_DATA,0},
+        {"COLOR",0,DXGI_FORMAT_R32G32B32A32_FLOAT,0,12,D3D11_INPUT_PER_VERTEX_DATA,0},
+    };
+    UINT numElements = sizeof(layout) / sizeof(layout[0]);
+
+    //頂点インプットレイアウトを作成・レイアウトをセット
+    hr = g_pDevice->CreateInputLayout(layout, numElements, pCompiledShader->GetBufferPointer(),
+        pCompiledShader->GetBufferSize(), & g_pVertexLayout);
+    if (FAILED(hr))
+    {
+        MessageBox(0, L"レイアウト作成失敗", NULL, MB_OK);
+        return hr;
+    }
+    SAFE_RELEASE(pCompiledShader);
+
+    //ブロブからピクセルシェーダーコンパイル
+    hr = D3DCompileFromFile(hlsl_name, nullptr, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+        "ps", "ps_4_0", 0, NULL, &pCompiledShader, &pErrors);
+    if (FAILED(hr))
+    {
+        //エラーがある場合、ｃがデバック情報を持つ
+        char* c = (char*)pErrors->GetBufferPointer();
+        MessageBox(0, L"hlsl読み込み失敗2", NULL, MB_OK);
+        SAFE_RELEASE(pErrors);
+        return hr;
+    }
+    //コンパイルしたピクセルシェーダーでインターフェースを作成
+    hr = g_pDevice->CreatePixelShader(pCompiledShader->GetBufferPointer(),
+        pCompiledShader->GetBufferSize(), NULL, &g_pPixelShader);
+    if (FAILED(hr))
+    {
+        SAFE_RELEASE(pCompiledShader);
+        MessageBox(0, L"ピクセルシェーダー作成失敗", NULL, MB_OK);
+    }
+    SAFE_RELEASE(pCompiledShader);
 }
 
 //デバイスの初期化
@@ -144,7 +262,7 @@ HRESULT APIENTRY InitDevice(HWND hWnd, int w, int h)
     }
 
     //デバイスからインターフェースを抽出
-    hr = pDevice->QueryInterface(__uuidof(IDXGIDevice1), (LPVOID*)&g_pDXGIDevice);
+    hr = pDevice->QueryInterface(__uuidof(IDXGIDevice1), (LPVOID*)&pDXGIDevice);
     if (FAILED(hr))
     {
         SAFE_RELEASE(pDevice);
@@ -315,7 +433,7 @@ HRESULT APIENTRY InitDevice(HWND hWnd, int w, int h)
     g_pDevice->CreateBlendState(&BlendDesc, &g_pBlendState);
 
     //ブレンディング
-    g_pDeviceContext->OMSetBlendState(g_pBlendState, NULL, 0xFFFF);
+    g_pDeviceContext->OMSetBlendState(g_pBlendState, NULL, 0xFFFFFFFF);
 
     //ステータス、ビューなどを書きだし
     g_pRS  = pRS;
@@ -323,4 +441,32 @@ HRESULT APIENTRY InitDevice(HWND hWnd, int w, int h)
     return hr;
 }
 
+//終了関数
+void ShutDown()
+{
+    SAFE_RELEASE(g_pBlendState);//ブレンドステータス
+
+    SAFE_RELEASE(g_pRTV);//レンダリングターゲットを解放
+
+    //スワップチェーンを解放
+    if (g_pDXGISwapChain != NULL)
+    {
+        g_pDXGISwapChain->SetFullscreenState(FALSE, 0);
+    }
+    SAFE_RELEASE(g_pDXGISwapChain);
+
+    //アウトプットを解放
+    for (UINT i = 0;i < g_nDXGIOutputArraySize;i++)
+    {
+        SAFE_RELEASE(g_ppDXGIOutputArray[i]);
+    }
+    SAFE_DELETE_ARRAY(g_ppDXGIOutputArray);
+
+    SAFE_RELEASE(g_pRS);              //2D用ラスタライザー
+    SAFE_RELEASE(g_pDXGIFactory);     //ファクトリーの解放
+    SAFE_RELEASE(g_pDXGIAdapter);     //アダプターの解放
+    SAFE_RELEASE(g_pDXGIDevice);      //DXGIデバイスの解放
+    SAFE_RELEASE(g_pDeviceContext);   //D3D11デバイスコンテストを解放
+    SAFE_RELEASE(g_pDevice);          //D3D11デバイスの解放
+}
 
