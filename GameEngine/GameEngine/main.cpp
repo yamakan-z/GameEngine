@@ -98,6 +98,9 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
     //DirectXデバイスの作成
     InitDevice(CWindowCreate::GetWnd(), 800, 600);
 
+    //ポリゴン表示環境の初期化
+    InitPolygonRender();
+
     //メッセージループ
     do
     {
@@ -113,12 +116,52 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
         g_pDeviceContext->RSSetState(g_pRS);//ラスタライズをセット
         //ここからレンダリング開始
 
+        //頂点レイアウト
+        g_pDeviceContext->IASetInputLayout(g_pVertexLayout);
 
+        //使用するシェーダーの登録
+        g_pDeviceContext->VSSetShader(g_pVertexShader, NULL, 0);
+        g_pDeviceContext->PSSetShader(g_pPixelShader, NULL, 0);
 
-        //レンダリング開始
+        //コンスタントバッファを使用するシェーダーに登録
+        g_pDeviceContext->VSSetConstantBuffers(0, 1, &g_pConstantBuffer);
+        g_pDeviceContext->PSSetConstantBuffers(0, 1, &g_pConstantBuffer);
+
+        //プリミティブ・トポロジーをセット
+        g_pDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+
+        //バーテックスバッファ登録
+        UINT stride = sizeof(POINT_LAYOUT);
+        UINT offset = 0;
+        g_pDeviceContext->IASetVertexBuffers(0, 1, &g_pVertexBuffer, &stride, &offset);
+
+        //インデックスバッファ登録
+        g_pDeviceContext->IASetIndexBuffer(g_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
+
+        //コンスタントバッファのデータ登録
+        D3D11_MAPPED_SUBRESOURCE pData;
+        if (SUCCEEDED(g_pDeviceContext->Map(g_pConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &pData)))
+        {
+            POLYGON_BUFFER data;
+            data.color[0] = 1.0f;
+            data.color[1] = 1.0f;
+            data.color[2] = 1.0f;
+            data.color[3] = 1.0f;
+
+            memcpy_s(pData.pData, pData.RowPitch, (void*)&data, sizeof(POLYGON_BUFFER));
+            //コンスタントバッファをシェーダに輸送
+            g_pDeviceContext->Unmap(g_pConstantBuffer, 0);
+        }
+
+        //登録した情報を元にポリゴンを描画
+        g_pDeviceContext->DrawIndexed(6, 0, 0);
+
+        //レンダリング終了
         g_pDXGISwapChain->Present(1, 0);//60FPSでバックバッファとプライマリバッファの交換
 
     } while (msg.message != WM_QUIT);
+
+    DeletePolygonRender();////ポリゴン表示環境の破棄
 
     ShutDown();//DirectXデバイスの削除
 
@@ -222,6 +265,96 @@ HRESULT InitPolygonRender()
         MessageBox(0, L"ピクセルシェーダー作成失敗", NULL, MB_OK);
     }
     SAFE_RELEASE(pCompiledShader);
+
+  //三角ポリゴンの各頂点の情報
+    POINT_LAYOUT vertices[] =
+    {  //  x     y    z     r     g   b    a
+        {{0.0f,0.0f,0.0f},{0.5f,0.5f,0.5f,1.0f},},//頂点1
+        {{0.5f,0.0f,0.0f},{0.5f,0.5f,0.5f,1.0f},},//頂点2
+        {{0.5f,0.5f,0.0f},{0.5f,0.5f,0.5f,1.0f},},//頂点3
+        {{0.0f,0.5f,0.0f},{0.5f,0.5f,0.5f,1.0f},},//頂点4
+    };
+    //バッファにバーテックスステータス設定
+    D3D11_BUFFER_DESC bd;
+    bd.Usage = D3D11_USAGE_DEFAULT;
+    bd.ByteWidth = sizeof(POINT_LAYOUT) * 4;
+    bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    bd.CPUAccessFlags = 0;
+    bd.MiscFlags = 0;
+
+    //バッファに入れるデータを設定
+    D3D11_SUBRESOURCE_DATA InitData;
+    InitData.pSysMem = vertices;
+
+    //ステータスとバッファに入れるデータを元にバーテックスバッファ作成
+    hr = g_pDevice->CreateBuffer(&bd, &InitData, &g_pVertexBuffer);
+    if (FAILED(hr))
+    {
+        MessageBox(0, L"バーテックスバッファ作成失敗", NULL, MB_OK);
+        return hr;
+    }
+    //ポリゴンのインデックス情報
+    unsigned short hIndexData[2][3] =
+    {
+        {0,1,2,},//1面
+        {0,2,3,},//2面
+    };
+
+    //バッファにインデックスステータス設定
+    D3D11_BUFFER_DESC hBufferDesc;
+    hBufferDesc.ByteWidth = sizeof(hIndexData);
+    hBufferDesc.Usage = D3D11_USAGE_DEFAULT;
+    hBufferDesc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+    hBufferDesc.CPUAccessFlags = 0;
+    hBufferDesc.MiscFlags = 0;
+    hBufferDesc.StructureByteStride = sizeof(unsigned short);
+
+    //バッファに入れるデータを設定
+    D3D11_SUBRESOURCE_DATA hSubResourceData;
+    hSubResourceData.pSysMem = hIndexData;
+    hSubResourceData.SysMemPitch = 0;
+    hSubResourceData.SysMemSlicePitch = 0;
+
+    //ステータスとバッファに入れるデータを元にインデックスバッファ作成
+    hr = g_pDevice->CreateBuffer(&hBufferDesc, &hSubResourceData, &g_pIndexBuffer);
+    if (FAILED(hr))
+    {
+        MessageBox(0, L"インデックスバッファ作成失敗", NULL, MB_OK);
+        return hr;
+    }
+
+    //バッファにコンスタントバッファ（シェーダにデータ受け渡し用）ステータス作成
+    D3D11_BUFFER_DESC cb;
+    cb.BindFlags           = D3D11_BIND_CONSTANT_BUFFER;
+    cb.ByteWidth           = sizeof(POLYGON_BUFFER);
+    cb.CPUAccessFlags      = D3D11_CPU_ACCESS_WRITE;
+    cb.MiscFlags           = 0;
+    cb.StructureByteStride = 0;
+    cb.Usage               = D3D11_USAGE_DYNAMIC;
+
+    //ステータスを元にコンスタントバッファを作成
+    hr = g_pDevice->CreateBuffer(&cb, NULL, &g_pConstantBuffer);
+    if (FAILED(hr))
+    {
+        MessageBox(0, L"コンスタントバッファ作成失敗", NULL, MB_OK);
+        return hr;
+    }
+
+    return hr;
+}
+
+//ポリゴン表示環境の破棄
+void DeletePolygonRender()
+{
+    //GPU側で扱う用
+    SAFE_RELEASE(g_pVertexShader);
+    SAFE_RELEASE(g_pPixelShader);
+    SAFE_RELEASE(g_pVertexLayout);
+
+    //ポリゴン情報登録用バッファ
+    SAFE_RELEASE(g_pConstantBuffer);
+    SAFE_RELEASE(g_pVertexBuffer);
+    SAFE_RELEASE(g_pIndexBuffer);
 }
 
 //デバイスの初期化
