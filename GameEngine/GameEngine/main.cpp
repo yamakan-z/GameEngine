@@ -2,6 +2,8 @@
 #include<windows.h>
 #include<D3D11.h>
 #include<d3dCompiler.h>
+#include"DirectXtex.h"
+#include"WICTextureLoader11.h"
 
 
 //Gameシステム用ヘッダー（自作）インクルード--------
@@ -51,12 +53,17 @@ ID3D11Buffer*       g_pConstantBuffer; //コンスタントバッファ
 ID3D11Buffer*       g_pVertexBuffer;   //バーテックスバッファ
 ID3D11Buffer*       g_pIndexBuffer;    //インデックスバッファ
 
+//テクスチャに必要なもの
+ID3D11SamplerState*       g_pSampleLinear;  //テクスチャーサンプラー
+ID3D11ShaderResourceView* g_pTexture;       //テクスチャーリソース
+
 //構造体----------------------
 //頂点レイアウト構造体（頂点が持つ情報）
 struct POINT_LAYOUT
 {
     float pos[3];  //X-Y-Z  :頂点
     float color[4];//R-G-B-A:色
+    float uv[2];   //U-V    :テクスチャ位置
 };
 
 //コンスタントバッファ構造体
@@ -232,6 +239,7 @@ HRESULT InitPolygonRender()
     {
         {"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT,0,0,D3D11_INPUT_PER_VERTEX_DATA,0},
         {"COLOR",0,DXGI_FORMAT_R32G32B32A32_FLOAT,0,12,D3D11_INPUT_PER_VERTEX_DATA,0},
+        {"UV"   ,0,DXGI_FORMAT_R32G32_FLOAT,      0,28,D3D11_INPUT_PER_VERTEX_DATA,0},
     };
     UINT numElements = sizeof(layout) / sizeof(layout[0]);
 
@@ -268,11 +276,11 @@ HRESULT InitPolygonRender()
 
   //三角ポリゴンの各頂点の情報
     POINT_LAYOUT vertices[] =
-    {  //  x     y    z     r     g   b    a
-        {{0.0f,0.0f,0.0f},{0.5f,0.5f,0.5f,1.0f},},//頂点1
-        {{0.5f,0.0f,0.0f},{0.5f,0.5f,0.5f,1.0f},},//頂点2
-        {{0.5f,0.5f,0.0f},{0.5f,0.5f,0.5f,1.0f},},//頂点3
-        {{0.0f,0.5f,0.0f},{0.5f,0.5f,0.5f,1.0f},},//頂点4
+    {  //  x     y    z     r     g   b    a      u     v
+        {{0.0f,0.0f,0.0f},{0.5f,0.5f,0.5f,1.0f},{0.0f,0.0f},},//頂点1
+        {{0.5f,0.0f,0.0f},{0.5f,0.5f,0.5f,1.0f},{1.0f,0.0f},},//頂点2
+        {{0.5f,0.5f,0.0f},{0.5f,0.5f,0.5f,1.0f},{1.0f,1.0f},},//頂点3
+        {{0.0f,0.5f,0.0f},{0.5f,0.5f,0.5f,1.0f},{0.0f,1.0f},},//頂点4
     };
     //バッファにバーテックスステータス設定
     D3D11_BUFFER_DESC bd;
@@ -339,6 +347,28 @@ HRESULT InitPolygonRender()
         MessageBox(0, L"コンスタントバッファ作成失敗", NULL, MB_OK);
         return hr;
     }
+
+    //テクスチャー用サンプラー作成
+    D3D11_SAMPLER_DESC SamDesc;
+    ZeroMemory(&SamDesc, sizeof(D3D11_SAMPLER_DESC));
+
+    SamDesc.Filter = D3D11_FILTER_ANISOTROPIC;
+    SamDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+    SamDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+    SamDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+    SamDesc.BorderColor[0] = 0.0f;
+    SamDesc.BorderColor[1] = 0.0f;
+    SamDesc.BorderColor[2] = 0.0f;
+    SamDesc.BorderColor[3] = 0.0f;
+    SamDesc.MipLODBias = 0.0f;
+    SamDesc.MaxAnisotropy = 2;
+    SamDesc.MinLOD = 0.0f;
+    SamDesc.MaxLOD = D3D11_FLOAT32_MAX;
+    SamDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
+    g_pDevice->CreateSamplerState(&SamDesc, &g_pSampleLinear);
+
+    //テクスチャー作成
+    DirectX::CreateWICTextureFromFile(g_pDevice, g_pDeviceContext, "LTexture.png", nullptr, g_pTexture, 0U);
 
     return hr;
 }

@@ -142,11 +142,21 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PolygonDraw.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="WICTextureLoader11.cpp" />
     <ClCompile Include="WindowCreate.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DirectXTex.h" />
+    <ClInclude Include="WICTextureLoader11.h" />
     <ClInclude Include="WindowCreate.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="DirectXTex.inl" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="DirectXTex.lib" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
