@@ -139,6 +139,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="DeviceCreate.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PolygonDraw.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
@@ -148,6 +149,7 @@
     <ClCompile Include="WindowCreate.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="DeviceCreate.h" />
     <ClInclude Include="DirectXTex.h" />
     <ClInclude Include="WICTextureLoader11.h" />
     <ClInclude Include="WindowCreate.h" />

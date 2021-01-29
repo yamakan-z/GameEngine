@@ -3,14 +3,17 @@ struct vertexIn
 {
 	float4 pos : POSITION;
 	float4 col : COLOR;
+	float2  uv  : UV;
 };
 
 //VSからPSに送る情報
 struct vertexOut
 {
+	//頂点情報はラスタライズで使用
 	float4 pos : SV_POSITION;
 	//以下PSで使用する
 	float4 col : COLOR;
+	float2 uv  : UV;
 };
 
 //グローバル
@@ -19,16 +22,23 @@ cbuffer global
 	float4 color;
 };
 
+//テクスチャ情報
+Texture2D      txDiffuse    :register(t0);//テクスチャのグラフィック
+SamplerState   samLinear    :register(s0);//テクスチャサンプラ
+
 //頂点シェーダ
 //引数 vertexIn   :CPUから受け取る頂点情報
 //戻り値 vertexOut:PSに送る情報
 //頂点情報を座標変換させるが今回は変換させていない。
+//CPUから受け取ったデータをそのまま流している
 vertexOut vs(vertexIn IN)
 {
 	vertexOut OUT;
 
-	OUT.pos = IN.pos;
-	OUT.col = IN.col;
+	//INからOUTへそのまま流す
+	OUT.pos = IN.pos; //頂点
+	OUT.col = IN.col; //色
+	OUT.uv  = IN.uv;  //UV
 
 	return OUT;
 }
@@ -41,5 +51,11 @@ vertexOut vs(vertexIn IN)
 float4 ps(vertexOut IN) :SV_Target
 {
 	float4 col = IN.col * color;
+	//UVからテクスチャの色の値を取得
+	float4 tex = txDiffuse.Sample(samLinear, IN.uv);
+
+	//colにテクスチャの色合成
+	col *= tex;
+
 return col;
 }
