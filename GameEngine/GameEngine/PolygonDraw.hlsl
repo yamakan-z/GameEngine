@@ -20,6 +20,8 @@ struct vertexOut
 cbuffer global
 {
 	float4 color;
+	float4 pos;
+	float4 scale;
 };
 
 //テクスチャ情報
@@ -35,8 +37,20 @@ vertexOut vs(vertexIn IN)
 {
 	vertexOut OUT;
 
-	//INからOUTへそのまま流す
-	OUT.pos = IN.pos; //頂点
+	//拡大率
+	OUT.pos.x = IN.pos.x * scale.x;
+	OUT.pos.y = IN.pos.y * scale.y;
+
+	//2D座標への変換
+	OUT.pos.x = +(OUT.pos.x * (256.0f / 400.0f)) - 1.0f;
+	OUT.pos.y = -(OUT.pos.y * (256.0f / 300.0f)) + 1.0f;
+
+	//平行移動
+	OUT.pos.x += (pos.x / 400.0f);
+	OUT.pos.y += (-pos.y / 300.0f);
+
+	//残りはINからOUTへそのまま流す
+	OUT.pos.zw = IN.pos.zw; //頂点
 	OUT.col = IN.col; //色
 	OUT.uv  = IN.uv;  //UV
 
@@ -56,6 +70,7 @@ float4 ps(vertexOut IN) :SV_Target
 
 	//colにテクスチャの色合成
 	col *= tex;
+	//col.a = 1.0f;
 
 return col;
 }

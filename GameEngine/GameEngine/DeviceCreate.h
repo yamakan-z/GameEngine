@@ -6,7 +6,7 @@
 #include <d3dCompiler.h>
 
 
-class CDeviceCreate
+typedef class CDeviceCreate
 {
 public:
 	CDeviceCreate(){}
@@ -14,6 +14,15 @@ public:
 
 	static HRESULT APIENTRY InitDevice(HWND hWnd, int w, int h);//デバイスの初期化
 	static void ShutDown();                                     //終了関数
+
+	//外部で使用する変数
+	static ID3D11Device*            GetDevice()         { return m_pDevice; }
+	static ID3D11DeviceContext*     GetDeviceContext()  { return m_pDeviceContext; }
+	static ID3D11RasterizerState*   GetRS()             { return m_pRS; }
+	static ID3D11RenderTargetView*  GetRTV()            { return m_pRTV; }
+	static ID3D11RenderTargetView** GetppRTV()          { return &m_pRTV; }
+	static IDXGISwapChain*          GetSwapChain()      { return m_pDXGISwapChain; }
+
 
 private:
 	static ID3D11Device*                 m_pDevice;              //   D3D11デバイス
@@ -28,4 +37,4 @@ private:
 	static UINT                          m_nDXGIOutputArraySize; //   DXGI出力群サイズ
 	static IDXGIDevice1*                 m_pDXGIDevice;          //   DXGIデバイス
 	static D3D_FEATURE_LEVEL             m_FeatureLevel;         //   D3D機能レベル
-};
+}Dev;

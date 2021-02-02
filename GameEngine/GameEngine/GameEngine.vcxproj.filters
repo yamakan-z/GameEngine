@@ -22,6 +22,9 @@
     <Filter Include="ソース ファイル\DirectX環境構築">
       <UniqueIdentifier>{53ce9c90-e0ce-406b-9c9e-8bf4b5aafdf5}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソース ファイル\2Dポリゴン描画">
+      <UniqueIdentifier>{bcbd9617-57a1-4301-bea6-922f5919f631}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -39,6 +42,9 @@
     <ClCompile Include="DeviceCreate.cpp">
       <Filter>ソース ファイル\DirectX環境構築</Filter>
     </ClCompile>
+    <ClCompile Include="Draw2DPolygon.cpp">
+      <Filter>ソース ファイル\2Dポリゴン描画</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DirectXTex.h">
@@ -52,6 +58,9 @@
     </ClInclude>
     <ClInclude Include="DeviceCreate.h">
       <Filter>ソース ファイル\DirectX環境構築</Filter>
+    </ClInclude>
+    <ClInclude Include="Draw2DPolygon.h">
+      <Filter>ソース ファイル\2Dポリゴン描画</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
