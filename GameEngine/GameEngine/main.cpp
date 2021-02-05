@@ -10,6 +10,7 @@
 #include "WindowCreate.h"
 #include "DeviceCreate.h"
 #include "Draw2DPolygon.h"
+#include "Input.h"
 
 //削除されていないメモリを出力にダンプする-----------
 #include<crtdbg.h>
@@ -26,6 +27,9 @@
 #pragma comment(lib,"d3d11.lib")
 #pragma comment(lib,"d3dCompiler.lib")
 #pragma comment(lib,"dxguid.lib")
+
+//グローバル変数
+
 
 //プロトタイプ変数
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);//ウィンドウプロジージャー
@@ -57,6 +61,13 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
 
     //ポリゴン表示環境の初期化
     Draw::InitPolygonRender();
+    Draw::LoadImage(0, L"Texture.png");//0番目に"Texture.png"を読み込み
+    Draw::LoadImage(1, L"tex1.png");
+    Draw::LoadImage(2, L"tex2.png");
+    Draw::LoadImage(3, L"tex3.png");
+
+    //入力用のクラス初期化
+    Input::InitInput();
 
     //メッセージループ
     do
@@ -72,8 +83,31 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
         Dev::GetDeviceContext()->ClearRenderTargetView(Dev::GetRTV(), color);//画面をcolorでクリア
         Dev::GetDeviceContext()->RSSetState(Dev::GetRS());//ラスタライズをセット
         //ここからレンダリング開始
+        static float x = 0.0f;
 
-        Draw::Draw2D(0,0,1.0f,1.0f);//テクスチャ付き四角ポリゴン描画
+        //Aキーが押されたとき
+        if (GetAsyncKeyState('A')==true)
+        {
+            x += 1.0f;
+        }
+        //システムキー「カーソルキー↑」が押されたとき
+        if (GetAsyncKeyState(VK_UP)==true)
+        {
+            x += 1.0f;
+        }
+        //システムキー　マウス右クリック
+        if (GetAsyncKeyState(VK_RBUTTON)==true)
+        {
+            x += 1.0f;
+        }
+
+        static float time = 0.0f;
+        time += 1.0f;
+        Draw::Draw2D(0,128+x,100,1.0f,1.0f,time);//テクスチャ付き四角ポリゴン描画
+        Draw::Draw2D(1,550, 300);
+        Draw::Draw2D(2,Input::GetMouX(), Input::GetMouY(), 1.0f, 1.0f,-time);
+        Draw::Draw2D(3,256, 256+64, time);
+
 
         //レンダリング終了
         Dev::GetSwapChain()->Present(1, 0);//60FPSでバックバッファとプライマリバッファの交換
@@ -94,6 +128,8 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
 //コールバック関数
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM  lParam)
 {
+    Input::SetMouPos(&uMsg, &lParam);
+
     switch (uMsg)
     {
     case WM_KEYDOWN:  //ESCキーで終了

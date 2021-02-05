@@ -25,6 +25,9 @@
     <Filter Include="ソース ファイル\2Dポリゴン描画">
       <UniqueIdentifier>{bcbd9617-57a1-4301-bea6-922f5919f631}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソース ファイル\インプット">
+      <UniqueIdentifier>{68622f4d-125f-4b5f-aa20-bedbbd3951de}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -45,6 +48,9 @@
     <ClCompile Include="Draw2DPolygon.cpp">
       <Filter>ソース ファイル\2Dポリゴン描画</Filter>
     </ClCompile>
+    <ClCompile Include="Input.cpp">
+      <Filter>ソース ファイル\インプット</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DirectXTex.h">
@@ -61,6 +67,9 @@
     </ClInclude>
     <ClInclude Include="Draw2DPolygon.h">
       <Filter>ソース ファイル\2Dポリゴン描画</Filter>
+    </ClInclude>
+    <ClInclude Include="Input.h">
+      <Filter>ソース ファイル\インプット</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

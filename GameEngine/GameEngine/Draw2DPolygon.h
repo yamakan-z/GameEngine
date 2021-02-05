@@ -21,9 +21,11 @@ struct POINT_LAYOUT
 //コンスタントバッファ構造体
 struct POLYGON_BUFFER
 {
-	float color[4]; //R-G-B-A:ポリゴンカラー
-	float pos[4];   //ポリゴンの位置情報
-	float scale[4]; //拡大縮小率
+	float color[4];    //R-G-B-A:ポリゴンカラー
+	float pos[4];      //ポリゴンの位置情報
+	float scale[4];    //拡大縮小率
+	float rotation[4]; //回転情報
+	float texsize[4];  //表示するイメージのサイズHW
 };
 
 
@@ -33,10 +35,16 @@ public:
 	CDraw2DPolygon(){}
 	~CDraw2DPolygon(){}
 
-	static void Draw2D(float x,float y,float sx,float sy);//描画
+	//描画機能　Draw2D群
+	static void Draw2D(int id,float x, float y) { Draw2D(id,x, y, 1.0f, 1.0f, 0.0f); }
+	static void Draw2D(int id,float x, float y,float r) { Draw2D(id,x, y, 1.0f, 1.0f, r); }
+	static void Draw2D(int id,float x, float y,float sx,float sy) { Draw2D(id,x, y, sx, sy, 0.0f); }
+	static void Draw2D(int id,float x,float y,float sx,float sy,float r);//描画
 
 	static HRESULT InitPolygonRender();    //ポリゴン表示環境の初期化
 	static void    DeletePolygonRender();  //ポリゴン表示環境の破棄
+
+	static void LoadImage(int id, const wchar_t* img_name); //イメージ情報読み込み
 
 private:
 	//GPUで扱う用
@@ -50,6 +58,8 @@ private:
 
 	//テクスチャに必要なもの
 	static ID3D11SamplerState*       m_pSampleLinear;  //テクスチャーサンプラー
-	static ID3D11ShaderResourceView* m_pTexture;       //テクスチャーリソース
+	static ID3D11ShaderResourceView* m_pTexture[32];       //テクスチャーリソース
+	static float                     m_width[32];      //テクスチャの横幅
+	static float                     m_height[32];     //テクスチャの縦幅
 
 }Draw;

@@ -13,11 +13,23 @@ ID3D11Buffer* Draw::m_pVertexBuffer;   //バーテックスバッファ
 ID3D11Buffer* Draw::m_pIndexBuffer;    //インデックスバッファ
 
 //テクスチャに必要なもの
-ID3D11SamplerState*       Draw::m_pSampleLinear;  //テクスチャーサンプラー
-ID3D11ShaderResourceView* Draw::m_pTexture;       //テクスチャーリソース
+ID3D11SamplerState*       Draw::m_pSampleLinear;      //テクスチャーサンプラー
+ID3D11ShaderResourceView* Draw::m_pTexture[32];       //テクスチャーリソース
+float Draw::m_width[32];   //テクスチャの横幅
+float Draw::m_height[32];  //テクスチャの縦幅
+
+//イメージ情報読み込み
+void CDraw2DPolygon::LoadImage(int id, const wchar_t* img_name)
+{
+    //読み込むテクスチャの大きさを測る
+    GetLoadImageFileSizeHW(img_name, &m_width[id], &m_height[id]);
+
+    //設定を元にテクスチャー作成
+    DirectX::CreateWICTextureFromFile(Dev::GetDevice(), Dev::GetDeviceContext(),img_name, nullptr, &m_pTexture[id], 0U);
+}
 
 //描画
-void CDraw2DPolygon::Draw2D(float x, float y, float sx, float sy)
+void CDraw2DPolygon::Draw2D(int id,float x, float y, float sx, float sy,float r)
 {
     //頂点レイアウト
     Dev::GetDeviceContext()->IASetInputLayout(m_pVertexLayout);
@@ -59,6 +71,13 @@ void CDraw2DPolygon::Draw2D(float x, float y, float sx, float sy)
         data.scale[0] = sx;
         data.scale[1] = sy;
 
+        //回転
+        data.rotation[0] = r;
+
+        //イメージサイズ
+        data.texsize[0] = m_width[id];
+        data.texsize[1] = m_height[id];
+
         memcpy_s(pData.pData, pData.RowPitch, (void*)&data, sizeof(POLYGON_BUFFER));
         //コンスタントバッファをシェーダに輸送
         Dev::GetDeviceContext()->Unmap(m_pConstantBuffer, 0);
@@ -66,8 +85,9 @@ void CDraw2DPolygon::Draw2D(float x, float y, float sx, float sy)
 
     //テクスチャーサンプラを使用
     Dev::GetDeviceContext()->PSSetSamplers(0, 1, &m_pSampleLinear);
+    
     //テクスチャを登録
-    Dev::GetDeviceContext()->PSSetShaderResources(0, 1, &m_pTexture);
+    Dev::GetDeviceContext()->PSSetShaderResources(0, 1, &m_pTexture[id]);
 
 
     //登録した情報を元にポリゴンを描画
@@ -78,6 +98,12 @@ void CDraw2DPolygon::Draw2D(float x, float y, float sx, float sy)
 //ポリゴン表示環境の初期化
 HRESULT CDraw2DPolygon::InitPolygonRender()
 {
+    //テクスチャの配列の初期化
+    for (int i = 0; i < 32; i++)
+    {
+        m_pTexture[i] = nullptr;
+    }
+
     HRESULT hr = S_OK;
 
     //hlslファイル名
@@ -242,8 +268,7 @@ HRESULT CDraw2DPolygon::InitPolygonRender()
     SamDesc.ComparisonFunc = D3D11_COMPARISON_NEVER;
     Dev::GetDevice()->CreateSamplerState(&SamDesc, &m_pSampleLinear);
 
-    //設定を元にテクスチャー作成
-    DirectX::CreateWICTextureFromFile(Dev::GetDevice(), Dev::GetDeviceContext(), L"Texture.png", nullptr, &m_pTexture, 0U);
+   
 
     return hr;
 }
@@ -253,7 +278,9 @@ void CDraw2DPolygon::DeletePolygonRender()
 {
     //テクスチャ情報の破棄
     SAFE_RELEASE(m_pSampleLinear);
-    SAFE_RELEASE(m_pTexture);
+
+    for(int i=0;i<32;i++)
+        SAFE_RELEASE(m_pTexture[i]);
 
     //GPU側で扱う用
     SAFE_RELEASE(m_pVertexShader);

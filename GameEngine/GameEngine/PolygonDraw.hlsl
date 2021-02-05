@@ -22,6 +22,8 @@ cbuffer global
 	float4 color;
 	float4 pos;
 	float4 scale;
+	float4 rotation;
+	float4 texsize;
 };
 
 //テクスチャ情報
@@ -36,14 +38,28 @@ SamplerState   samLinear    :register(s0);//テクスチャサンプラ
 vertexOut vs(vertexIn IN)
 {
 	vertexOut OUT;
+	float2 p;
 
-	//拡大率
-	OUT.pos.x = IN.pos.x * scale.x;
-	OUT.pos.y = IN.pos.y * scale.y;
+	//原点にポリゴンの中心を移動させる
+	p.x = IN.pos.x - 0.5f;
+	p.y = IN.pos.y - 0.5f;
+
+	//ポリゴンを拡大させる
+	p.x = p.x * scale.x * texsize.x / 400.0f;
+	p.y = p.y * scale.y * texsize.y / 300.0f;
+
+	//ポリゴンを原点に中心に回転
+	float r = 3.14f / 180.0f * rotation.x;
+	OUT.pos.x = p.x * cos(r) - p.y * sin(r);
+	OUT.pos.y = p.y * cos(r) + p.x * sin(r);
+
+	//ポリゴンを元の位置に移動させる（拡大分を考慮）
+	OUT.pos.x += 0.5f * scale.x * texsize.x / 400.0f;
+	OUT.pos.y += 0.5f * scale.y * texsize.y / 300.0f;
 
 	//2D座標への変換
-	OUT.pos.x = +(OUT.pos.x * (256.0f / 400.0f)) - 1.0f;
-	OUT.pos.y = -(OUT.pos.y * (256.0f / 300.0f)) + 1.0f;
+	OUT.pos.x = +(OUT.pos.x) - 1.0f;
+	OUT.pos.y = -(OUT.pos.y) + 1.0f;
 
 	//平行移動
 	OUT.pos.x += (pos.x / 400.0f);
