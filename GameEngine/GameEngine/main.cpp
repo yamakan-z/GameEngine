@@ -1,9 +1,11 @@
 //システム系のヘッダーインクルード------------------
+#include<stdio.h>
 #include<Windows.h>
 #include<D3D11.h>
 #include<d3dCompiler.h>
 #include"DirectXTex.h"
 #include"WICTextureLoader11.h"
+#include<XAudio2.h>
 
 
 //Gameシステム用ヘッダー（自作）インクルード--------
@@ -27,18 +29,44 @@
 #pragma comment(lib,"d3d11.lib")
 #pragma comment(lib,"d3dCompiler.lib")
 #pragma comment(lib,"dxguid.lib")
+#pragma comment(lib,"XAudio2.lib")
 
-//グローバル変数
+//構造体----------------------------
+//RIFFファイルフォーマット
+class ChunkInfo
+{
+public:
+    ChunkInfo():Size(0),pData(nullptr){}
+    unsigned int   Size;   //チャンクデータ部のサイズ
+    unsigned char* pData;  //チャンクデータ部の先頭ポインタ
+};
+
+
+//グローバル変数------
+IXAudio2*                g_pXAudio2;          //XAudio2オブジェクト
+IXAudio2MasteringVoice*  g_pMasteringVoice;   //マスターボイス
+ChunkInfo*               g_DataChunk;         //サウンド情報
+unsigned char*           g_pResourceData;     //サウンドファイル情報を持つポインタ
+IXAudio2SourceVoice*     g_pSourceVoice;      //サウンドボイスインターフェース
+IXAudio2SubmixVoice*     g_pSFXSubmixVoice;   //サブミクスインターフェース
 
 
 //プロトタイプ変数
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);//ウィンドウプロジージャー
+void  InitAudio();
+void  DeleteAudio();
+WORD  GetWord(const unsigned char* pData);
+DWORD GetDword(const unsigned char* pData);
+ChunkInfo FindChunk(const unsigned char* pData, const char* pChunkName);
+
 
 //Main関数--------------------
 int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmdLine, int nCmdshow)
 {
     //メモリダンプ開始
     _CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+
+    CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
 
     wchar_t name[] = { L"GameEngine" };//ウィンドウ＆タイトルネーム
     MSG msg;                           //メッセージハンドル
@@ -55,6 +83,9 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
 
     //ウィンドウ作成
     CWindowCreate::NewWindow(800, 600, name, hInstance);
+
+    //オーディオ作成
+    InitAudio();
 
     //DirectX Deviceの初期化
     CDeviceCreate::InitDevice(CWindowCreate::GetWnd(), 800, 600);
@@ -118,6 +149,10 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
 
     CDeviceCreate::ShutDown();//DirectXの環境破棄
 
+    DeleteAudio();//オーディオ環境の破棄
+
+    CoUninitialize();//COMの終了命令,ColnitializeExを用いたら必ず使用する
+
     //この時点で解放されていないメモリの情報を表示
     _CrtDumpMemoryLeaks();
     return true;
@@ -148,5 +183,49 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM  lParam)
     return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
+//XAudio2によるAudio環境構築関数
+void InitAudio()
+{
+    unsigned XAudio2CreateFlags = 0;
 
+    //XAudio2インターフェース作成
+    XAudio2Create(&g_pXAudio2, XAudio2CreateFlags);
+
+    //マスターボイス作成
+    g_pXAudio2->CreateMasteringVoice(&g_pMasteringVoice);
+
+    //ミックスボイス作成
+    g_pXAudio2->CreateSubmixVoice(&g_pSFXSubmixVoice, 1, 44100, 0, 0, 0, 0);
+
+    //waveファイルのオープン
+    FILE* fp;
+    const wchar_t* FILENAME = L"SETrigger.wav";
+    _wfopen_s(&fp,FILENAME, L"rb");
+
+    //ファイルサイズを取得
+    unsigned Size = 0;
+    fseek(fp, 0, SEEK_END);
+    Size = ftell(fp);
+    g_pResourceData = new unsigned char[Size];
+
+    //ファイルデータをメモリに移す
+    fseek(fp, 0, SEEK_SET);
+    fread(reinterpret_cast<char*>(g_pResourceData), Size, 1, fp);
+    fclose(fp);
+
+    //RIFFファイル解析
+    WAVEFORMATEX WaveformatEx = { 0 };
+
+    //RIFFデータの先頭アドレスとRIFFデータサイズを渡す
+    ChunkInfo WaveChunk = FindChunk(g_pResourceData, "fmt");
+    unsigned char* p = WaveChunk.pData;
+
+    //wave情報取得
+    WaveformatEx.wFormatTag = GetWord(p);
+    p += sizeof(WORD);
+    WaveformatEx.nChannels = GetWord(p);
+    p += sizeof(WORD);
+    WaveformatEx.nSamplesPerSec = GetDword(p);
+
+}
 
