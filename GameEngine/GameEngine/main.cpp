@@ -45,7 +45,7 @@ public:
 //グローバル変数------
 IXAudio2*                g_pXAudio2;          //XAudio2オブジェクト
 IXAudio2MasteringVoice*  g_pMasteringVoice;   //マスターボイス
-ChunkInfo*               g_DataChunk;         //サウンド情報
+ChunkInfo                g_DataChunk;         //サウンド情報
 unsigned char*           g_pResourceData;     //サウンドファイル情報を持つポインタ
 IXAudio2SourceVoice*     g_pSourceVoice;      //サウンドボイスインターフェース
 IXAudio2SubmixVoice*     g_pSFXSubmixVoice;   //サブミクスインターフェース
@@ -221,11 +221,26 @@ void InitAudio()
     unsigned char* p = WaveChunk.pData;
 
     //wave情報取得
-    WaveformatEx.wFormatTag = GetWord(p);
+    WaveformatEx.wFormatTag        = GetWord(p);
     p += sizeof(WORD);
-    WaveformatEx.nChannels = GetWord(p);
+    WaveformatEx.nChannels         = GetWord(p);
     p += sizeof(WORD);
-    WaveformatEx.nSamplesPerSec = GetDword(p);
+    WaveformatEx.nSamplesPerSec    = GetDword(p);
+    p += sizeof(DWORD);
+    WaveformatEx.nAvgBytesPerSec   = GetDword(p);
+    p += sizeof(DWORD);
+    WaveformatEx.nBlockAlign       = GetWord(p);
+    p += sizeof(WORD);
+    WaveformatEx.wBitsPerSample    = GetWord(p);
+    p += sizeof(WORD);
+    WaveformatEx.cbSize            = GetWord(p);
+    p += sizeof(WORD);
+
+    //波形データの先頭の先頭アドレスと波形データサイズ値を渡す
+    g_DataChunk = FindChunk(g_pResourceData, "data");
+
+    //再生のためのインターフェース作成
+
 
 }
 
