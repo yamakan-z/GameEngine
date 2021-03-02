@@ -240,6 +240,7 @@ void InitAudio()
     g_DataChunk = FindChunk(g_pResourceData, "data");
 
     //再生のためのインターフェース作成
+    m_pXAudio2->CreateSourceVoice(&g_pSourceVoice, &WaveformatEx);
 
 
 }
