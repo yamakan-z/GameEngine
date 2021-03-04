@@ -240,8 +240,95 @@ void InitAudio()
     g_DataChunk = FindChunk(g_pResourceData, "data");
 
     //再生のためのインターフェース作成
-    m_pXAudio2->CreateSourceVoice(&g_pSourceVoice, &WaveformatEx);
+    g_pXAudio2->CreateSourceVoice(&g_pSourceVoice, &WaveformatEx);//間違ってる可能性あり
 
+
+    //サウンドバッファをソースボイスキューの送信
+    XAUDIO2_BUFFER SoundBuffer = { 0 };
+    SoundBuffer.AudioBytes = g_DataChunk.Size;
+    SoundBuffer.pAudioData = reinterpret_cast<BYTE*>(g_DataChunk.pData);
+    SoundBuffer.LoopCount = XAUDIO2_LOOP_INFINITE;
+    SoundBuffer.Flags = XAUDIO2_END_OF_STREAM;
+
+    g_pSourceVoice->SubmitSourceBuffer(&SoundBuffer);
+    g_pSourceVoice->Start();
 
 }
 
+//Audio環境破棄
+void DeleteAudio()
+{
+    if (g_pSourceVoice != nullptr)
+    {
+        g_pSourceVoice->Stop();
+        g_pSourceVoice->FlushSourceBuffers();
+        g_pSourceVoice->DestroyVoice();
+    }
+
+    //サウンドデータ破棄
+    if (g_DataChunk.pData != nullptr)
+    {
+        delete g_pResourceData;
+    }
+
+    //ミックスサウンド破棄
+    g_pSFXSubmixVoice->DestroyVoice();
+
+    //マスターボイス破棄
+    g_pMasteringVoice->DestroyVoice();
+
+    //XAudio2インターフェース破棄
+    g_pXAudio2->Release();
+}
+
+//Word型変換関数
+//引数1　const  unsinged char* pData:Word型に変換する配列
+//戻り値　Wordに変換した値
+//指定した配列要素2つ分(2byte)をWORD型の値として出力
+WORD GetWord(const unsigned char* pData)
+{
+    WORD value = pData[0] | pData[1] << 8;
+    return value;
+}
+
+//DWord型変換変数
+//引数1　const unsigned char* pData:DWord
+//戻り値　DWord型に変換した値
+//指定した配列要素4つ分(4byte)をDWORDの値として出力
+DWORD GetDword(const unsigned char* pData)
+{
+    DWORD value = pData[0] | pData[1] << 8 | pData[2] << 16 | pData[3] << 24;
+    return value;
+}
+
+//指定したチャンク値を見つける関数
+//引数1 const unsigned char* pData:Waveファイルデータを持った配列
+//引数2 const char* pChunkName :探すチャンクネーム
+//戻り値:ChunkInfo:チャンク以外にあるファイルサイズ値とデータ部の先頭アドレス返す
+//指定したチャンクを配列から探し出して、チャンク以下に設定されてるデータサイズと
+//データ部の先頭アドレスを返す。また、必ずチャンクは見つかるとして簡略化してる
+ChunkInfo FindChunk(const unsigned char* pData, const char* pChunkName)
+{
+    const unsigned CHUNKNAME_LENGTH = strlen(pChunkName);
+    while (true)
+    {
+        bool IsFind = true;
+        for (unsigned i = 0; i < CHUNKNAME_LENGTH; ++i)
+        {
+            if (pData[i] != pChunkName[i])
+            {
+                IsFind = false;
+                break;
+            }
+        }
+        if (IsFind)
+        {
+            ChunkInfo info;
+            info.Size = pData[4 + 0] | pData[4 + 1] << 8 | pData[4 + 2] << 16 | pData[4 + 3] << 24;
+            info.pData = const_cast<unsigned char*>(pData + 8);
+            return info;
+        }
+        pData++;
+    }
+    return ChunkInfo();
+}
