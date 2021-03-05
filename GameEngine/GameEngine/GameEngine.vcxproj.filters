@@ -28,6 +28,9 @@
     <Filter Include="ソース ファイル\インプット">
       <UniqueIdentifier>{68622f4d-125f-4b5f-aa20-bedbbd3951de}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソース ファイル\オーディオ">
+      <UniqueIdentifier>{3f2b46a3-0633-41a7-aaec-b988caa1ede3}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -51,6 +54,9 @@
     <ClCompile Include="Input.cpp">
       <Filter>ソース ファイル\インプット</Filter>
     </ClCompile>
+    <ClCompile Include="Audio.cpp">
+      <Filter>ソース ファイル\オーディオ</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DirectXTex.h">
@@ -70,6 +76,9 @@
     </ClInclude>
     <ClInclude Include="Input.h">
       <Filter>ソース ファイル\インプット</Filter>
+    </ClInclude>
+    <ClInclude Include="Audio.h">
+      <Filter>ソース ファイル\オーディオ</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
