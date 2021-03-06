@@ -1,14 +1,27 @@
 #include "Audio.h"
 
-IXAudio2*               CAudio::m_pXAudio2;          //XAudio2オブジェクト
-IXAudio2MasteringVoice* CAudio::m_pMasteringVoice;   //マスターボイス
-ChunkInfo               CAudio::m_DataChunk;         //サウンド情報
-unsigned char*          CAudio::m_pResourceData;     //サウンドファイル情報を持つポインタ
-IXAudio2SourceVoice*    CAudio::m_pSourceVoice;      //サウンドボイスインターフェース
-IXAudio2SubmixVoice*    CAudio::m_pSFXSubmixVoice;   //サブミクスインターフェース
-ChunkInfo               CAudio::m_SEDataChunk[32];       //SE用のサウンド情報
-unsigned char*          CAudio::m_pSEResourceData[32];   //SE用のサウンドファイル情報を持つポインタ
-IXAudio2SourceVoice*    CAudio::m_pSESourceVoice[32][16];    //SE用のサウンドボイスインターフェース
+IXAudio2*               CAudio::m_pXAudio2;                   //XAudio2オブジェクト
+IXAudio2MasteringVoice* CAudio::m_pMasteringVoice;            //マスターボイス
+ChunkInfo               CAudio::m_DataChunk;                  //サウンド情報
+unsigned char*          CAudio::m_pResourceData;              //サウンドファイル情報を持つポインタ
+IXAudio2SourceVoice*    CAudio::m_pSourceVoice;               //サウンドボイスインターフェース
+IXAudio2SubmixVoice*    CAudio::m_pSFXSubmixVoice;            //サブミクスインターフェース
+ChunkInfo               CAudio::m_SEDataChunk[32];            //SE用のサウンド情報
+unsigned char*          CAudio::m_pSEResourceData[32];        //SE用のサウンドファイル情報を持つポインタ
+IXAudio2SourceVoice*    CAudio::m_pSESourceVoice[32][16];     //SE用のサウンドボイスインターフェース
+IXAudio2SubmixVoice*    CAudio::m_pSESFXSubmixVoice[32];      //SE用のサブミクスインターフェース
+
+//BackMusic用のミュージックのボリューム調整
+void CAudio::LoopMusicVolume(float t)
+{
+    m_pSFXSubmixVoice->SetVolume(t, 0);
+}
+
+//SE用ミュージックのボリューム調整
+void CAudio::SEMusicVolume(int id, float t)
+{
+    m_pSESFXSubmixVoice[id]->SetVolume(t, 0);
+}
 
 //マスターボリューム調整
 void CAudio::MasterVolume(float t)
@@ -95,16 +108,70 @@ void CAudio::LoadSEMusic(int id, const wchar_t* name)
     WAVEFORMATEX WaveformatEx;
     m_pSEResourceData[id] = LoadWave(&m_SEDataChunk[id], &WaveformatEx, name);
 
-    //再生のためのインターフェース生成
+    
     for (int i = 0; i < 16; i++)
     {
-        m_pXAudio2->CreateSourceVoice(&m_pSESourceVoice[id][i], &WaveformatEx);
+        //再生のためのインターフェース生成
+        //サブミクスボイスをセット
+        XAUDIO2_SEND_DESCRIPTOR data;
+        data.Flags = 0;
+        data.pOutputVoice = m_pSESFXSubmixVoice[id];
+        XAUDIO2_VOICE_SENDS SFXSendList;
+        memset(&SFXSendList, 0x00, sizeof(XAUDIO2_VOICE_SENDS));
+        SFXSendList.SendCount = 1;
+        SFXSendList.pSends = &data;
+        //ソースボイス作成
+        m_pXAudio2->CreateSourceVoice(&m_pSESourceVoice[id][i], &WaveformatEx, 0U, 2.0F, 0, &SFXSendList, 0);
     }
    
 }
 
+//SE用の音楽読み込みOgg用
+void CAudio::LoadSEMusic(int id, const wchar_t* name)//間違いの可能性（指南書15-13)
+{
+    //Waveファイル取得
+    WAVEFORMATEX WaveformatEx;
+    m_pSEResourceData[id] = LoadOgg(&m_SEDataChunk[id], &WaveformatEx, name);
+
+    for (int i = 0; i < 16; i++)
+    {
+        //再生のためのインターフェース生成
+        //サブミクスボイスをセット
+        XAUDIO2_SEND_DESCRIPTOR data;
+        data.Flags = 0;
+        data.pOutputVoice = m_pSESFXSubmixVoice[id];
+        XAUDIO2_VOICE_SENDS SFXSendList;
+        memset(&SFXSendList, 0x00, sizeof(XAUDIO2_VOICE_SENDS));
+        SFXSendList.SendCount = 1;
+        SFXSendList.pSends = &data;
+        //ソースボイス作成
+        m_pXAudio2->CreateSourceVoice(&m_pSESourceVoice[id][i], &WaveformatEx, 0U, 2.0F, 0, &SFXSendList, 0);
+    }
+
+
+}
 
 //ループ用の音楽読み込み
+void CAudio::LoadBackMusic(const wchar_t* name)//間違いの可能性（指南書15-13)
+{
+    //Waveファイル取得
+    WAVEFORMATEX WaveformatEx;
+    m_pResourceData = LoadOgg(&m_DataChunk, &WaveformatEx, name);
+
+    //再生のためのインターフェース生成
+    XAUDIO2_SEND_DESCRIPTOR data;
+    data.Flags = 0;
+    data.pOutputVoice = m_pSFXSubmixVoice;
+    XAUDIO2_VOICE_SENDS SFXSendList;
+    memset(&SFXSendList, 0x00, sizeof(XAUDIO2_VOICE_SENDS));
+    SFXSendList.SendCount = 1;
+    SFXSendList.pSends = &data;
+    //ソースボイス作成
+    m_pXAudio2->CreateSourceVoice(&m_pSourceVoice, &WaveformatEx, 0U, 2.0F, 0, &SFXSendList, 0);
+
+}
+
+//ループ用の音楽読み込みOgg用
 void CAudio::LoadBackMusic(const wchar_t* name)
 {
     //Waveファイル取得
@@ -112,7 +179,15 @@ void CAudio::LoadBackMusic(const wchar_t* name)
     m_pResourceData = LoadWave(&m_DataChunk, &WaveformatEx, name);
 
     //再生のためのインターフェース生成
-    m_pXAudio2->CreateSourceVoice(&m_pSourceVoice, &WaveformatEx);
+    XAUDIO2_SEND_DESCRIPTOR data;
+    data.Flags = 0;
+    data.pOutputVoice = m_pSFXSubmixVoice;
+    XAUDIO2_VOICE_SENDS SFXSendList;
+    memset(&SFXSendList, 0x00, sizeof(XAUDIO2_VOICE_SENDS));
+    SFXSendList.SendCount = 1;
+    SFXSendList.pSends = &data;
+    //ソースボイス作成
+    m_pXAudio2->CreateSourceVoice(&m_pSourceVoice, &WaveformatEx, 0U, 2.0F, 0, &SFXSendList, 0);
 
 }
 
@@ -152,6 +227,11 @@ void CAudio::InitAudio()
 
     //ミックスボイス作成
     m_pXAudio2->CreateSubmixVoice(&m_pSFXSubmixVoice, 1, 44100, 0, 0, 0, 0);
+
+    for (int i = 0; i < 32; i++)
+    {
+        m_pXAudio2->CreateSubmixVoice(&m_pSESFXSubmixVoice[i], 1, 44100, 0, 0, 0, 0);
+    }
 
     //サウンドボイス初期化
     m_pSourceVoice = nullptr;
@@ -203,6 +283,12 @@ void CAudio::DeleteAudio()
     if (m_DataChunk.pData != nullptr)
     {
         delete[] m_pResourceData;
+    }
+
+    //SE用のサブミックスサウンド破棄
+    for (int i = 0; i < 32; i++)
+    {
+        m_pSESFXSubmixVoice[i]->DestroyVoice();
     }
 
     //ミックスサウンド破棄

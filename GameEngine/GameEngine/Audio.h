@@ -23,6 +23,8 @@ public:
 	static void InitAudio();//初期化
 	static void DeleteAudio();//破棄
 
+	static void LoopMusicVolume(float t);       //BackMusic用のミュージックのボリューム調整
+	static void SEMusicVolume(int id, float t); //SE用ミュージックのボリューム調整
 	static void MasterVolume(float t);//マスターボリューム調整
 
 	static void LoadBackMusic(const wchar_t* name);//ループ用の音楽読み込み
@@ -49,6 +51,7 @@ private:
 	static ChunkInfo              m_SEDataChunk[32];           //SE用のサウンド情報
 	static unsigned char*         m_pSEResourceData[32];       //SE用のサウンドファイル情報を持つポインタ
 	static IXAudio2SourceVoice*   m_pSESourceVoice[32][16];    //SE用のサウンドボイスインターフェース
+	static IXAudio2SubmixVoice*   m_pSESFXSubmixVoice[32];     //SE用のサブミクスインターフェース
 
 
 }Audio;
