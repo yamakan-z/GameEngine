@@ -1,5 +1,15 @@
 #include "Audio.h"
 
+#pragma comment(lib,"winmm.lib")
+#pragma comment(lib,"libogg.lib")
+#pragma comment(lib,"libvorbis_static.lib")
+#pragma comment(lib,"libvorbisfile_static.lib")
+
+#include<vector>
+#include"vorbis/vorbisfile.h"
+using namespace std;
+
+
 IXAudio2*               CAudio::m_pXAudio2;                   //XAudio2オブジェクト
 IXAudio2MasteringVoice* CAudio::m_pMasteringVoice;            //マスターボイス
 ChunkInfo               CAudio::m_DataChunk;                  //サウンド情報
@@ -101,6 +111,68 @@ unsigned char* CAudio::LoadWave(ChunkInfo* p_chunk_info, WAVEFORMATEX* p_wave, c
     return wave_data;
 }
 
+//Oggファイル読み込み
+unsigned char* CAudio::LoadOgg(ChunkInfo* p_chunk_info, WAVEFORMATEX* p_wave, char* name)
+{
+    //Oggファイルを開く
+    OggVorbis_File ovf;
+    if (ov_fopen("テスト.ogg", &ovf) != 0)
+    {
+        return nullptr;
+    }
+
+    //Oggファイルの音声フォーマット情報
+    vorbis_info* oggInfo = ov_info(&ovf, -1);
+
+    //リニアPCM格納
+    vector<char>tmpBuffer(4096);//分割されて送られるデータを入れるバッファ
+    vector<char>buffer;         //リニアPCMデータ格納用バッファ
+
+    //Oggのリソースからメモリにデータを移す
+    int bitstream = 0;
+    int readSize = 0;//読み込みに成功したデータの大きさ
+    int comSize = 0;//動的なbufferの現在の大きさ
+
+    while (1)
+    {
+        //最大4096byteにデータが分割して送られる
+        readSize = ov_read(&ovf, &tmpBuffer[0], 4096, 0, 2, 1, &bitstream);
+        if (readSize == 0)
+        {
+            break;
+        }
+
+        //bufferに取得したデータを追加（追加分要素も増やす）
+        buffer.resize(comSize + readSize);                   //要素追加
+        memcpy(&buffer[comSize], &tmpBuffer[0], readSize);   //バッファにコピー
+
+        //今のバッファの大きさを計算
+        comSize += readSize;
+    }
+
+    //waveヘッダ部分
+    p_wave->wFormatTag           = 1;
+    p_wave->nChannels            = oggInfo->channels;
+    p_wave->nSamplesPerSec       = oggInfo->rate;
+    p_wave->nAvgBytesPerSec      = oggInfo->rate * 16 / 8 * oggInfo->channels;
+    p_wave->nBlockAlign          = 16 / 8 * oggInfo->channels;
+    p_wave->wBitsPerSample       = 16;
+    p_wave->cbSize               = 0;
+
+
+    //波形データ部分
+    unsigned char* wave_data = new unsigned char[comSize];
+    memcpy(wave_data, &buffer[0], comSize);
+    p_chunk_info->Size = comSize;
+    p_chunk_info->pData = wave_data;
+
+    ov_clear(&ovf);//Oggクローズ
+    vector<char>().swap(tmpBuffer);
+    vector<char>().swap(buffer);
+    
+    return wave_data;
+}
+
 //SE用の音楽読み込み
 void CAudio::LoadSEMusic(int id, const wchar_t* name)
 {
@@ -126,52 +198,7 @@ void CAudio::LoadSEMusic(int id, const wchar_t* name)
    
 }
 
-//SE用の音楽読み込みOgg用
-void CAudio::LoadSEMusic(int id, const wchar_t* name)//間違いの可能性（指南書15-13)
-{
-    //Waveファイル取得
-    WAVEFORMATEX WaveformatEx;
-    m_pSEResourceData[id] = LoadOgg(&m_SEDataChunk[id], &WaveformatEx, name);
-
-    for (int i = 0; i < 16; i++)
-    {
-        //再生のためのインターフェース生成
-        //サブミクスボイスをセット
-        XAUDIO2_SEND_DESCRIPTOR data;
-        data.Flags = 0;
-        data.pOutputVoice = m_pSESFXSubmixVoice[id];
-        XAUDIO2_VOICE_SENDS SFXSendList;
-        memset(&SFXSendList, 0x00, sizeof(XAUDIO2_VOICE_SENDS));
-        SFXSendList.SendCount = 1;
-        SFXSendList.pSends = &data;
-        //ソースボイス作成
-        m_pXAudio2->CreateSourceVoice(&m_pSESourceVoice[id][i], &WaveformatEx, 0U, 2.0F, 0, &SFXSendList, 0);
-    }
-
-
-}
-
 //ループ用の音楽読み込み
-void CAudio::LoadBackMusic(const wchar_t* name)//間違いの可能性（指南書15-13)
-{
-    //Waveファイル取得
-    WAVEFORMATEX WaveformatEx;
-    m_pResourceData = LoadOgg(&m_DataChunk, &WaveformatEx, name);
-
-    //再生のためのインターフェース生成
-    XAUDIO2_SEND_DESCRIPTOR data;
-    data.Flags = 0;
-    data.pOutputVoice = m_pSFXSubmixVoice;
-    XAUDIO2_VOICE_SENDS SFXSendList;
-    memset(&SFXSendList, 0x00, sizeof(XAUDIO2_VOICE_SENDS));
-    SFXSendList.SendCount = 1;
-    SFXSendList.pSends = &data;
-    //ソースボイス作成
-    m_pXAudio2->CreateSourceVoice(&m_pSourceVoice, &WaveformatEx, 0U, 2.0F, 0, &SFXSendList, 0);
-
-}
-
-//ループ用の音楽読み込みOgg用
 void CAudio::LoadBackMusic(const wchar_t* name)
 {
     //Waveファイル取得
@@ -190,6 +217,35 @@ void CAudio::LoadBackMusic(const wchar_t* name)
     m_pXAudio2->CreateSourceVoice(&m_pSourceVoice, &WaveformatEx, 0U, 2.0F, 0, &SFXSendList, 0);
 
 }
+
+//SE用の音楽読み込みOgg用
+void CAudio::LoadSEMusic(int id, char* name)//間違いの可能性（指南書15-13)
+{
+    //Waveファイル取得
+    WAVEFORMATEX WaveformatEx;
+    m_pSEResourceData[id] = LoadOgg(&m_SEDataChunk[id], &WaveformatEx, name);
+
+    //再生のためのインターフェース生成
+    for (int i = 0; i < 16; i++)
+    {
+        m_pXAudio2->CreateSourceVoice(&m_pSESourceVoice[id][i], &WaveformatEx);
+    }
+
+
+}
+
+//ループ用の音楽読み込みOgg用
+void CAudio::LoadBackMusic(char* name)//間違いの可能性（指南書15-13)
+{
+    //Waveファイル取得
+    WAVEFORMATEX WaveformatEx;
+    m_pResourceData = LoadOgg(&m_DataChunk, &WaveformatEx, name);
+
+    //再生のためのインターフェース生成
+    m_pXAudio2->CreateSourceVoice(&m_pSourceVoice, &WaveformatEx);
+
+}
+
 
 
 //ループ用の音楽停止

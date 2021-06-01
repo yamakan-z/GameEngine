@@ -165,6 +165,9 @@
   </ItemGroup>
   <ItemGroup>
     <Library Include="DirectXTex.lib" />
+    <Library Include="libogg.lib" />
+    <Library Include="libvorbisfile_static.lib" />
+    <Library Include="libvorbis_static.lib" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

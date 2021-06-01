@@ -90,5 +90,14 @@
     <Library Include="DirectXTex.lib">
       <Filter>ソース ファイル\DirectXTex</Filter>
     </Library>
+    <Library Include="libogg.lib">
+      <Filter>ソース ファイル</Filter>
+    </Library>
+    <Library Include="libvorbis_static.lib">
+      <Filter>ソース ファイル</Filter>
+    </Library>
+    <Library Include="libvorbisfile_static.lib">
+      <Filter>ソース ファイル</Filter>
+    </Library>
   </ItemGroup>
 </Project>

@@ -70,7 +70,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
     Audio::InitAudio();
 
     //ミュージック情報取得
-    Audio::LoadBackMusic (L"SETrigger.wav");
+    Audio::LoadBackMusic (L"テスト.ogg");
     Audio::LoadSEMusic   (0, L"SEBom.wav");
     Audio::LoadSEMusic(1, L"SETrigger.wav");
 

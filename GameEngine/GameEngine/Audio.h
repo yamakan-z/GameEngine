@@ -27,8 +27,12 @@ public:
 	static void SEMusicVolume(int id, float t); //SE用ミュージックのボリューム調整
 	static void MasterVolume(float t);//マスターボリューム調整
 
+	//wave用
 	static void LoadBackMusic(const wchar_t* name);//ループ用の音楽読み込み
 	static void LoadSEMusic(int id, const wchar_t* name);//SE用の音楽読み込み
+	//ogg用
+	static void LoadBackMusic(char* name);//ループ用の音楽読み込み
+	static void LoadSEMusic(int id, char* name);//SE用の音楽読み込み
 
 	static void StartLoopMusic();          //ループ用の音楽再生
 	static void StopLoopMusic();           //ループ用の音楽停止
@@ -37,6 +41,8 @@ public:
 
 private:
 	static unsigned char* LoadWave(ChunkInfo* p_chunk_info, WAVEFORMATEX* p_wave, const wchar_t* name);//Wave読み込み
+	static unsigned char* LoadOgg(ChunkInfo* p_chunk_info, WAVEFORMATEX* p_wave, char* name);//Ogg読み込み
+
 	static WORD  GetWord(const unsigned char* pData);
 	static DWORD GetDword(const unsigned char* pData);
 	static ChunkInfo FindChunk(const unsigned char* pData, const char* pChunkName);
