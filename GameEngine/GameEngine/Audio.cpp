@@ -112,11 +112,11 @@ unsigned char* CAudio::LoadWave(ChunkInfo* p_chunk_info, WAVEFORMATEX* p_wave, c
 }
 
 //Oggファイル読み込み
-unsigned char* CAudio::LoadOgg(ChunkInfo* p_chunk_info, WAVEFORMATEX* p_wave, char* name)
+unsigned char* CAudio::LoadOgg(ChunkInfo* p_chunk_info, WAVEFORMATEX* p_wave, const char* name)
 {
     //Oggファイルを開く
     OggVorbis_File ovf;
-    if (ov_fopen("テスト.ogg", &ovf) != 0)
+    if (ov_fopen(name, &ovf) != 0)
     {
         return nullptr;
     }
@@ -235,7 +235,7 @@ void CAudio::LoadSEMusic(int id, char* name)//間違いの可能性（指南書15-13)
 }
 
 //ループ用の音楽読み込みOgg用
-void CAudio::LoadBackMusic(char* name)//間違いの可能性（指南書15-13)
+void CAudio::LoadBackMusic(const char* name)//間違いの可能性（指南書15-13)
 {
     //Waveファイル取得
     WAVEFORMATEX WaveformatEx;

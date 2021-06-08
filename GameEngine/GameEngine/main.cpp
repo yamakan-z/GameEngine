@@ -34,8 +34,75 @@
 
 //構造体----------------------------
 
+//Objectクラス
+class CObj
+{
+public://公開部(外部からのアクセス可）
+    virtual void Action() { printf("ObjAction\n"); };
+    virtual void Draw()   { printf("ObjDraw\n"); };
+private://私的部（このクラスのみアクセス可）
+   
+};
 
 
+//主人公クラス
+class CHero :public CObj
+{
+public://公開部
+    void Action() { printf("HeroAction\n"); };
+    void Draw()   { printf("HeroDraw\n"); };
+private://私的部
+    
+};
+
+//敵クラス
+class CEnemy :public CObj
+{
+public://公開部
+    void Action() { printf("EnemyAction\n"); };
+    void Draw()   { printf("EnemyDraw\n"); };
+private://私的部
+   
+};
+
+//背景クラス
+class CBackImg :public CObj
+{
+public: //公開部
+    void Action() { printf("BackImgAction\n"); };
+    void Draw()   { printf("BackImgDraw\n"); };
+private: //私的部
+  
+};
+
+void main()
+{
+    CObj* obj_array[3];
+    //登録
+    obj_array[0] = new CHero();
+    obj_array[1] = new CEnemy();
+    obj_array[2] = new CBackImg();
+
+    //アクション実行
+    for (int i = 0; i < 3; i++)
+    {
+        obj_array[i]->Action();
+    }
+
+    //ドロー
+    for (int i = 0; i < 3; i++)
+    {
+        obj_array[i]->Draw();
+    }
+
+    //削除
+    for (int i = 0; i < 3; i++)
+    {
+        delete obj_array[i];
+    }
+
+    getchar();
+}
 //グローバル変数------
 
 //プロトタイプ変数
@@ -70,7 +137,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
     Audio::InitAudio();
 
     //ミュージック情報取得
-    Audio::LoadBackMusic (L"テスト.ogg");
+    Audio::LoadBackMusic("テスト.ogg");
     Audio::LoadSEMusic   (0, L"SEBom.wav");
     Audio::LoadSEMusic(1, L"SETrigger.wav");
 
