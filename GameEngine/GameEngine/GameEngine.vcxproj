@@ -142,12 +142,15 @@
     <ClCompile Include="Audio.cpp" />
     <ClCompile Include="DeviceCreate.cpp" />
     <ClCompile Include="Draw2DPolygon.cpp" />
+    <ClCompile Include="FontTex.cpp" />
+    <ClCompile Include="Hero.cpp" />
     <ClCompile Include="Input.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="PolygonDraw.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="TaskSystem.cpp" />
     <ClCompile Include="WICTextureLoader11.cpp" />
     <ClCompile Include="WindowCreate.cpp" />
   </ItemGroup>
@@ -156,7 +159,10 @@
     <ClInclude Include="DeviceCreate.h" />
     <ClInclude Include="DirectXTex.h" />
     <ClInclude Include="Draw2DPolygon.h" />
+    <ClInclude Include="FontTex.h" />
+    <ClInclude Include="Hero.h" />
     <ClInclude Include="Input.h" />
+    <ClInclude Include="TaskSystem.h" />
     <ClInclude Include="WICTextureLoader11.h" />
     <ClInclude Include="WindowCreate.h" />
   </ItemGroup>

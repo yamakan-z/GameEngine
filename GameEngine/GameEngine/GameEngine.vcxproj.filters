@@ -31,6 +31,15 @@
     <Filter Include="ソース ファイル\オーディオ">
       <UniqueIdentifier>{3f2b46a3-0633-41a7-aaec-b988caa1ede3}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソース ファイル\タスクシステム">
+      <UniqueIdentifier>{60d407e0-3b54-496f-913e-708bbbb3c0e5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\Debug用オブジェクト">
+      <UniqueIdentifier>{920c6051-c516-4b45-8cd3-02740623bc16}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="ソース ファイル\文字描画">
+      <UniqueIdentifier>{2c44f5a4-5b4b-4385-915f-9269817189bb}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -57,6 +66,15 @@
     <ClCompile Include="Audio.cpp">
       <Filter>ソース ファイル\オーディオ</Filter>
     </ClCompile>
+    <ClCompile Include="TaskSystem.cpp">
+      <Filter>ソース ファイル\タスクシステム</Filter>
+    </ClCompile>
+    <ClCompile Include="Hero.cpp">
+      <Filter>ソース ファイル\Debug用オブジェクト</Filter>
+    </ClCompile>
+    <ClCompile Include="FontTex.cpp">
+      <Filter>ソース ファイル\文字描画</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DirectXTex.h">
@@ -79,6 +97,15 @@
     </ClInclude>
     <ClInclude Include="Audio.h">
       <Filter>ソース ファイル\オーディオ</Filter>
+    </ClInclude>
+    <ClInclude Include="TaskSystem.h">
+      <Filter>ソース ファイル\タスクシステム</Filter>
+    </ClInclude>
+    <ClInclude Include="Hero.h">
+      <Filter>ソース ファイル\Debug用オブジェクト</Filter>
+    </ClInclude>
+    <ClInclude Include="FontTex.h">
+      <Filter>ソース ファイル\文字描画</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -1,0 +1,42 @@
+#include"Hero.h"
+
+CHero::CHero()
+{
+	//ランダムに初期値を決める
+	m_x = rand() % 300 + 100;
+	m_y = rand() % 300 + 100;
+	//初期値
+	m_vx = 1.0f;
+	m_vy = 1.0f;
+}
+
+CHero::~CHero()
+{
+
+}
+
+void CHero::Action()
+{
+	//削除実行
+	if (Input::KeyPush('Z'))
+	{
+		is_delete = true;
+	}
+
+
+	//領域に出ないように反射させる
+	if (m_x < 0.0f)m_vx = +1.0f;
+	if (m_x > 800.0f - 256.0f)m_vx = -1.0f;
+	if (m_y < 0.0f)m_vy = +1.0f;
+	if (m_y > 600.0f - 256.0f)m_vy = -1.0f;
+
+	//移動方向に位置*速度を加える
+	m_x += m_vx * 5.0f;
+	m_y += m_vy * 5.0f;
+}
+
+void CHero::Draw()
+{
+	//描画
+	Draw::Draw2D(0, m_x, m_y);
+}
