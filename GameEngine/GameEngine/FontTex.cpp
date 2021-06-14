@@ -30,6 +30,31 @@ void CCherClass::CreateCharTex(wchar_t c,HDC hdc,TEXTMETRIC TM)
 	code = (UINT)*m_pc.get();
 
 	//フォント情報から文字のビットマップ取得
+	//文字のビットマップの大きさを取得
+	size = GetGlyphOutline(hdc, code, GGO_GRAY4_BITMAP, &GM, 0, NULL, &Mat);
+	ptr = new BYTE[size];
+	//文字のビットマップ情報をptrに入れる
+	GetGlyphOutline(hdc, code, GGO_GRAY4_BITMAP, &GM, size, ptr, &Mat);
+
+	//空テクスチャの設定
+	D3D11_TEXTURE2D_DESC desc;
+	memset(&desc, 0, sizeof(desc));
+	desc.MipLevels = 1;
+	desc.ArraySize = 1;
+	desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;             //テクスチャフォーマットR8G8B8の24bit
+	desc.SampleDesc.Count = 1;                            //サンプリングは1ピクセルのみ
+	desc.Usage = D3D11_USAGE_DYNAMIC;                     //CPU書き込み可能
+	desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;          //シェーダリソース
+	desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;         //CPUから書き込みアクセス可
+	desc.Height = 32;                                     //縦のサイズ
+	desc.Width = 32;                                      //横のサイズ
+
+	//設定を元に空テクスチャを作成
+	Dev::GetDevice()->CreateTexture2D(&desc, 0, &m_pTexture);
+
+	//テクスチャ情報を取得する
+	D3D11_TEXTURE2D_DESC texDesc;
+	m_pTexture->GetDesc(&texDesc);
 }
 
 //-----CFontTex-----------
