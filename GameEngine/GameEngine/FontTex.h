@@ -8,6 +8,7 @@
 
 using namespace std;
 
+#include "DeviceCreate.h"
 #include "Draw2DPolygon.h"
 
 //文字識別クラス
@@ -28,7 +29,7 @@ public:
 		SAFE_RELEASE(m_pTexture);
 	}
 
-	void CreateCharTex(wchar_t c);//文字テクスチャ作成
+	void CreateCharTex(wchar_t c,HDC hdc,TEXTMETRIC TM);//文字テクスチャ作成
 
 private:
 	unique_ptr<wchar_t>         m_pc;         //識別用文字

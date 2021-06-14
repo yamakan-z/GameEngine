@@ -10,9 +10,26 @@ list<unique_ptr<CCherClass>> CFontTex::list_char_tex;//文字リスト
 //-----CCherClass---------
 
 //文字テクスチャ作成メソッド
-void CCherClass::CreateCharTex(wchar_t c)
+void CCherClass::CreateCharTex(wchar_t c,HDC hdc,TEXTMETRIC TM)
 {
+	//識別文字用
+	UINT code = 0;//作成する文字コード
 
+	//文字フォント描画用
+	BYTE* ptr;      //文字のグラフィック（ビットマップ）を入れる場所
+	DWORD size;     //文字を表現するのに必要なメモリの大きさ
+	GLYPHMETRICS GM;//象形文字の情報が格納
+	const MAT2 Mat = { {0,1},{0,0},{0,0},{0,1} };//フォント書き込み向き
+
+	//テクスチャ描きこみ用ポインタ
+	D3D11_MAPPED_SUBRESOURCE mapped;//リソースにアクセスするポインタ
+	BYTE* pBits;                    //テクスチャのピクセル情報入れるポインタ
+
+	//識別文字コード登録
+	m_pc.reset(new wchar_t(c));
+	code = (UINT)*m_pc.get();
+
+	//フォント情報から文字のビットマップ取得
 }
 
 //-----CFontTex-----------
