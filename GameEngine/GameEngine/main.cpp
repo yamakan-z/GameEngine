@@ -15,6 +15,7 @@
 #include "Input.h"
 #include "Audio.h"
 #include "TaskSystem.h"
+#include "FontTex.h"
 
 //デバッグ用オブジェクトヘッダ--------------
 #include"Hero.h"
@@ -73,6 +74,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
     Input::InitInput();//入力用のクラス初期化
     Draw::InitPolygonRender(); //ポリゴン表示環境の初期化
     TaskSystem::InitTaskSystem(); //タスクシステム初期化
+    Font::InitFontTex();//フォント初期化
     //リソース読み込み-------
     //ミュージック情報取得
     Audio::LoadBackMusic("テスト.ogg");
@@ -108,6 +110,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
         //ここからレンダリング開始
        
         TaskSystem::ListDraw();//リスト内のドロー実行
+        Font::StrDraw(L"あ", 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 
         //レンダリング終了
         Dev::GetSwapChain()->Present(1, 0);//60FPSでバックバッファとプライマリバッファの交換
@@ -115,6 +118,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
     } while (msg.message != WM_QUIT);
 
     //ゲームシステム破棄
+    Font::DeleteFontTex();//フォントの破棄
     TaskSystem::DeleteTaskSystem();//タスクシステムの破棄
     Draw::DeletePolygonRender();////ポリゴン表示環境の破棄
     CDeviceCreate::ShutDown();//DirectXの環境破棄

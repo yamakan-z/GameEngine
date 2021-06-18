@@ -45,9 +45,6 @@
     <ClCompile Include="main.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="PolygonDraw.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="WICTextureLoader11.cpp">
       <Filter>ソース ファイル\DirectXTex</Filter>
     </ClCompile>
@@ -74,6 +71,9 @@
     </ClCompile>
     <ClCompile Include="FontTex.cpp">
       <Filter>ソース ファイル\文字描画</Filter>
+    </ClCompile>
+    <ClCompile Include="PolygonDraw.cpp">
+      <Filter>ソース ファイル</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

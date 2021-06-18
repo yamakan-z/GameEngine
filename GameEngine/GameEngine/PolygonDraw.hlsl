@@ -80,7 +80,7 @@ vertexOut vs(vertexIn IN)
 //から持ってきた色を乗算してる
 float4 ps(vertexOut IN) :SV_Target
 {
-	float4 col = IN.col * color;
+	float4 col = IN.col * color;//ここを消す　文字がおかしいとき
 	//UVからテクスチャの色の値を取得
 	float4 tex = txDiffuse.Sample(samLinear, IN.uv);
 

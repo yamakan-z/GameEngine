@@ -5,7 +5,7 @@ HFONT           CFontTex::m_hFont;     //フォントハンドル：論理フォント（GDIオブ
 HDC             CFontTex::m_hdc;       //ディスプレイデバイスコンテキストのハンドル
 HFONT           CFontTex::m_oldFont;   //フォントハンドル：物理フォント（GDIオブジェクト）
 TEXTMETRIC      CFontTex::m_TM;        //フォント情報格納用
-list<unique_ptr<CCherClass>> CFontTex::list_char_tex;//文字リスト
+list<unique_ptr<CCherClass>>* CFontTex::list_char_tex;//文字リスト
 
 //-----CCherClass---------
 
@@ -55,16 +55,101 @@ void CCherClass::CreateCharTex(wchar_t c,HDC hdc,TEXTMETRIC TM)
 	//テクスチャ情報を取得する
 	D3D11_TEXTURE2D_DESC texDesc;
 	m_pTexture->GetDesc(&texDesc);
+
+	//テクスチャにShaderResourceViewを接続
+	D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
+	ZeroMemory(&srvDesc, sizeof(srvDesc));
+	srvDesc.Format = texDesc.Format;
+	srvDesc.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.MipLevels = texDesc.MipLevels;
+	Dev::GetDevice()->CreateShaderResourceView(m_pTexture, &srvDesc, &m_pTexResView);
+
+	//テクスチャロック（テクスチャの書き込みを行うときロックする）
+	Dev::GetDeviceContext()->Map(m_pTexture, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
+	pBits = (BYTE*)mapped.pData;
+
+	//フォント情報の書き込み
+	int iOfs_x = GM.gmptGlyphOrigin.x;
+	int iOfs_y = TM.tmAscent - GM.gmptGlyphOrigin.y;//iOfs_x,iOf_y:書き出し位置（左上）
+	int iBmp_w = GM.gmBlackBoxX + (4 - (GM.gmBlackBoxX % 4)) % 4;
+	int iBmp_h = GM.gmBlackBoxY; //iBmp_w,iBmp_h:フォントビットマップの幅高
+	int Level = 17;//Level:α値の段階（GGO_GRAY4_BITMAPなので17段階）
+	DWORD Alpha, Color;
+	//1ピクセル単位にフォントの色情報（32bit)をテクスチャに書き込み
+	memset(pBits, 0x00,sizeof(DWORD)*32*32);
+	for (int y = iOfs_y; y < iOfs_y + iBmp_h; y++)
+	{
+		for (unsigned int x = iOfs_x; x < iOfs_x + GM.gmBlackBoxX; x++)
+		{
+			Alpha = (255 * ptr[x - iOfs_x + iBmp_w * (y - iOfs_y)]) / (Level - 1);
+			Color = 0x00ffffff | (Alpha << 24);
+			memcpy((BYTE*)pBits + (y << 7) + (x << 2), &Color, sizeof(DWORD));
+		}
+	}
+
+	//アンロック（書き込みが終われば、アンロックする）
+	Dev::GetDeviceContext()->Unmap(m_pTexture, D3D11CalcSubresource(0, 0, 1));
+
+	//文字ビットマップデータ削除
+	delete[] ptr;
+
+
 }
 
 //-----CFontTex-----------
+//文字描画
+void CFontTex::StrDraw(const wchar_t* str, float x, float y, float s, float r, float g, float b, float a)
+{
+	//文字列を登録
+	CreateStrTex(str);
+
+	//描画
+	float c[] = { r,g,b,a };
+	Draw::Draw2DChar(list_char_tex->begin()->get()->GetTexResView(), 0, 0, s, c);
+}
+
+//文字列を元に文字テクスチャを作成
+void CFontTex::CreateStrTex(const wchar_t* str)
+{
+	//文字列を、文字をlistに登録済みかチェック
+	for (unsigned int i = 0; i < wcslen(str); i++)
+	{
+		bool ls_char_entry = false;
+
+		//リストから検索
+		for (auto itr = list_char_tex->begin(); itr != list_char_tex->end(); itr++)
+		{
+			//登録された文字とstrの文字列を比較
+			if (*itr->get()->GetChar()==str[i])
+			{
+				//登録されている
+				ls_char_entry = true;
+			}
+		}
+
+		//登録がなければ、CreateCharTexを作成する
+		if (ls_char_entry == false)
+		{
+			//文字テクスチャを作成
+			unique_ptr<CCherClass>obj(new CCherClass());
+			obj->CreateCharTex(str[i], m_hdc, m_TM);
+
+			//リストに登録
+			list_char_tex->push_back(move(obj));
+		}
+	}
+}
+
+
+
 
 //初期化メソッド
 void CFontTex::InitFontTex()
 {
 
 	//リスト初期化
-	list_char_tex.clear();
+	list_char_tex = new list<unique_ptr<CCherClass>>;
 
 
 	//第一引数のカテゴリに、第二引数の国別コードに影響を与える
@@ -103,7 +188,8 @@ void CFontTex::InitFontTex()
 void CFontTex::DeleteFontTex()
 {
 	//リスト破棄
-	list_char_tex.clear();
+	list_char_tex->clear();
+	delete list_char_tex;
 
 	//これらGDIオブジェクトを破棄
 	DeleteObject(m_oldFont);

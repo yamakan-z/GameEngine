@@ -29,7 +29,10 @@ public:
 		SAFE_RELEASE(m_pTexture);
 	}
 
+	wchar_t* GetChar() { return m_pc.get(); }//登録している文字返す
+
 	void CreateCharTex(wchar_t c,HDC hdc,TEXTMETRIC TM);//文字テクスチャ作成
+	ID3D11ShaderResourceView* GetTexResView() { return m_pTexResView; }//文字のリソースビュー
 
 private:
 	unique_ptr<wchar_t>         m_pc;         //識別用文字
@@ -38,7 +41,7 @@ private:
 };
 
 
-
+//フォント描画クラス
 typedef class CFontTex
 {
 public:
@@ -48,6 +51,10 @@ public:
 	static void InitFontTex();
 	static void DeleteFontTex();
 
+	//const
+	static void CreateStrTex(const wchar_t* str);//文字列を元に文字テクスチャを作成
+	static void StrDraw(const wchar_t* str, float x, float y, float s, float r, float g, float b, float a);//文字描画
+
 private:
 	//フォント作成に必要な変数
 	static HFONT           m_hFont;     //フォントハンドル：論理フォント（GDIオブジェクト）
@@ -55,6 +62,6 @@ private:
 	static HFONT           m_oldFont;   //フォントハンドル：物理フォント（GDIオブジェクト）
 	static TEXTMETRIC      m_TM;        //フォント情報格納用
 
-	static list<unique_ptr<CCherClass>>list_char_tex;//文字リスト
+	static list<unique_ptr<CCherClass>>*list_char_tex;//文字リスト
 
 }Font;
