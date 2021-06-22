@@ -105,8 +105,34 @@ void CFontTex::StrDraw(const wchar_t* str, float x, float y, float s, float r, f
 	CreateStrTex(str);
 
 	//描画
+	float str_pos = 0.0f;//描画位置
 	float c[] = { r,g,b,a };
-	Draw::Draw2DChar(list_char_tex->begin()->get()->GetTexResView(), 0, 0, s, c);
+
+	for (unsigned int i = 0; i < wcslen(str); i++)
+	{
+		for (auto itr = list_char_tex->begin(); itr != list_char_tex->end(); itr++)
+		{
+			if (*itr->get()->GetChar() == str[i])
+			{
+				Draw::Draw2DChar(itr->get()->GetTexResView(), x + (str_pos), y, s, c);
+				//大文字か小文字で次の描画位置を変える
+				char mc[3];
+				int len;
+				wctomb_s(&len, mc, sizeof(wchar_t), *(*itr)->GetChar());
+
+				if (len == 1)
+				{
+					str_pos += 16 * s;
+				}
+				else
+				{
+					str_pos += 32 * s;
+				}
+				break;
+			}
+		}
+	}
+	
 }
 
 //文字列を元に文字テクスチャを作成

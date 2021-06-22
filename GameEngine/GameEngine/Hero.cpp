@@ -8,6 +8,9 @@ CHero::CHero()
 	//初期値
 	m_vx = 1.0f;
 	m_vy = 1.0f;
+
+	//ヒットボックス作成（）
+	m_p_hit_box=Collision::HitBoxInsert(this);
 }
 
 CHero::~CHero()

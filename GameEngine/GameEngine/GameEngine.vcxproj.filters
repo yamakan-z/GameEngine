@@ -40,6 +40,9 @@
     <Filter Include="ソース ファイル\文字描画">
       <UniqueIdentifier>{2c44f5a4-5b4b-4385-915f-9269817189bb}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソース ファイル\当たり判定">
+      <UniqueIdentifier>{25b80a2c-f38c-4d19-9c30-23616c2e027c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -75,6 +78,9 @@
     <ClCompile Include="PolygonDraw.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
+    <ClCompile Include="Collision.cpp">
+      <Filter>ソース ファイル\当たり判定</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DirectXTex.h">
@@ -106,6 +112,9 @@
     </ClInclude>
     <ClInclude Include="FontTex.h">
       <Filter>ソース ファイル\文字描画</Filter>
+    </ClInclude>
+    <ClInclude Include="Collision.h">
+      <Filter>ソース ファイル\当たり判定</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
