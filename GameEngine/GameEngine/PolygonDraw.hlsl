@@ -81,11 +81,21 @@ vertexOut vs(vertexIn IN)
 float4 ps(vertexOut IN) :SV_Target
 {
 	float4 col = IN.col * color;//ここを消す　文字がおかしいとき
-	//UVからテクスチャの色の値を取得
-	float4 tex = txDiffuse.Sample(samLinear, IN.uv);
 
-	//colにテクスチャの色合成
-	col *= tex;
+	if (texsize z == 1.0f)
+	{
+		//UVからテクスチャの色の値を取得
+		float4 tex = txDiffuse.Sample(samLinear, IN.uv);
+		//colにテクスチャの色合成
+		col *= tex;
+	}
+	else
+	{
+		//テクスチャなしのため、なにもしない
+	}
+	
+
+	
 	//col.a = 1.0f;
 
 return col;

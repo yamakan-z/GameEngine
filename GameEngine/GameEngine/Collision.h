@@ -7,6 +7,7 @@
 #include<list>
 
 #include "TaskSystem.h"
+
 using namespace std;
 
 //衝突オブジェクトクラス
@@ -20,6 +21,7 @@ public:
 	//初期化
 	void Init()
 	{
+		ls_delete = false;
 		m_x = m_y = -999.0f;
 		m_w = m_h = 0.0f;
 		m_obj = nullptr;
@@ -28,7 +30,16 @@ public:
 			m_hit[i] = nullptr;
 	}
 
+	void SetDelete(bool d)            { ls_delete = d; }                 //削除フラグセット
+	void SetPos(float x, float y)     { m_x = x; m_y = y; }              //位置セット
+	void SetWH(float w, float h)      { m_w = w; m_h = h; }              //幅セット
+	void SetElement(int element)      { m_element = element; }           //属性セット
+	void SetInvisible(bool invisible) { m_ls_invisible = invisible; }    //無敵セット
+	HitBox** GetHitData()             { return m_hit; }                  //当たった相手のヒットボックス情報取得
+	 
 private:
+	//削除フラグ
+	bool ls_delete;
 	//位置
 	float m_x;
 	float m_y;
@@ -57,8 +68,11 @@ public:
 	static void DeleteHitBox();//破棄
 
 	static HitBox* HitBoxInsert(CObj* p);//当たり判定を作成しリストに登録
+	static void CheckStart();
 
 private:
+	//個々の当たり判定
+	static bool HitAB(float ax, float ay, float aw, float ah, float bx, float by, float bw, float bh);
 	//リスト　HitBoxを持つオブジェクトの要素を持つ
 	static list<shared_ptr<HitBox>>* m_hit_box_list;
 

@@ -103,6 +103,8 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
         }
 
         TaskSystem::ListAction();//リスト内のアクション実行
+        //衝突判定実行
+        Collision::CheckStart();
 
         //レンダリングターゲットセットとレンダリング画面クリア
         float color[] = { 0.0f,0.25f,0.45f,1.0f };
@@ -120,9 +122,10 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
     } while (msg.message != WM_QUIT);
 
     //ゲームシステム破棄
+
+    TaskSystem::DeleteTaskSystem();//タスクシステムの破棄
     Collision::DeleteHitBox();//コリジョンの破棄
     Font::DeleteFontTex();//フォントの破棄
-    TaskSystem::DeleteTaskSystem();//タスクシステムの破棄
     Draw::DeletePolygonRender();////ポリゴン表示環境の破棄
     CDeviceCreate::ShutDown();//DirectXの環境破棄
     Audio::DeleteAudio();//オーディオ環境の破棄
