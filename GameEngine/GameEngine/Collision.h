@@ -68,7 +68,8 @@ public:
 	static void DeleteHitBox();//破棄
 
 	static HitBox* HitBoxInsert(CObj* p);//当たり判定を作成しリストに登録
-	static void CheckStart();
+	static void CheckStart();            //list内の当たり判定描画
+	static void DrawDebug();             //デバッグ用の当たり判定描画
 
 private:
 	//個々の当たり判定

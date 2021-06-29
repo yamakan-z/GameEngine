@@ -1,3 +1,7 @@
+//STLデバッグ機能をOFFにする
+#define _SECURE_SCL (0)
+#define _HAS_ITERATOR_DEBUGGING (0)
+
 #include"Hero.h"
 
 CHero::CHero()
@@ -47,6 +51,9 @@ void CHero::Action()
 	//移動方向に位置*速度を加えるF
 	m_x += m_vx * 5.0f;
 	m_y += m_vy * 5.0f;
+
+	//当たり判定用の位置更新
+	m_p_hit_box->SetPos(m_x, m_y);
 }
 
 void CHero::Draw()

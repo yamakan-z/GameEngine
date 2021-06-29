@@ -1,6 +1,22 @@
+//STLデバッグ機能をOFFにする
+#define _SECURE_SCL (0)
+#define _HAS_ITERATOR_DEBUGGING (0)
+
 #include "Collision.h"
+#include "Draw2DPolygon.h"
 
 list<shared_ptr<HitBox>>* CCollision::m_hit_box_list;//リスト　HitBox用
+
+//デバッグ用の当たり判定
+void CCollision::DrawDebug()
+{
+	float c[4] = { 1.0f,0.0f,0.0f,0.3f };
+	//listのHitBoxを描画
+	for (auto ip = m_hit_box_list->begin(); ip != m_hit_box_list->end(); ip++)
+	{
+		CDraw2DPolygon::Draw2DHitBox((*ip)->m_x, (*ip)->m_y, (*ip)->m_w, (*ip)->m_h, c);
+	}
+}
 
 //当たり判定を作成しリストに登録
 HitBox* CCollision::HitBoxInsert(CObj* p)

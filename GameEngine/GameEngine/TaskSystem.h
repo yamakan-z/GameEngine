@@ -14,12 +14,14 @@ public:
 	CObj() 
 	{
 		is_delete = false;
+		m_priority = 0;
 	}
 	virtual ~CObj() {};
 	virtual void Action() = 0;
 	virtual void Draw() = 0;
 
 	bool is_delete;//削除フラグ
+	unsigned long m_priority;//描画優先順位
 };
 
 //タスクシステム
@@ -35,6 +37,8 @@ public:
 
 	static void InitTaskSystem();   //初期化
 	static void DeleteTaskSystem(); //破棄
+
+	static void SortPriority();//リスト内のオブジェクトをプライオリティ順にソート
 
 private:
 	//リスト　CObjを持つオブジェクトの要素を持つ

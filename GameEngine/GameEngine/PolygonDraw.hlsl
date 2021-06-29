@@ -82,7 +82,7 @@ float4 ps(vertexOut IN) :SV_Target
 {
 	float4 col = IN.col * color;//ここを消す　文字がおかしいとき
 
-	if (texsize z == 1.0f)
+	if (texsize.z == 1.0f)
 	{
 		//UVからテクスチャの色の値を取得
 		float4 tex = txDiffuse.Sample(samLinear, IN.uv);

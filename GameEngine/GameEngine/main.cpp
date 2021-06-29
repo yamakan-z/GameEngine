@@ -1,3 +1,7 @@
+//STLデバッグ機能をOFFにする
+#define _SECURE_SCL (0)
+#define _HAS_ITERATOR_DEBUGGING (0)
+
 //システム系のヘッダーインクルード------------------
 #include<stdio.h>
 #include<Windows.h>
@@ -5,6 +9,8 @@
 #include<d3dCompiler.h>
 #include"DirectXTex.h"
 #include"WICTextureLoader11.h"
+#include <thread>
+#include <atomic>
 
 
 
@@ -42,10 +48,70 @@
 
 
 //グローバル変数------
+atomic<bool>g_ls_game_end = false;
 
 //プロトタイプ変数
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);//ウィンドウプロジージャー
 
+//マルチスレッドにする関数----------
+//テクスチャ読み込み関数
+unsigned __stdcall TextureLoadThread(void* p)
+{
+    //COM初期化
+    CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+    //イメージ読み込み
+    CDraw2DPolygon::LoadImage(0, L"Texture.png");
+
+    CoUninitialize();//COM解除
+    return 0;
+}
+
+//ミュージック読み込み関数
+unsigned __stdcall MusicLoadThread(void* p)
+{
+    //COM初期化
+    CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+    //ミュージック情報取得
+    CAudio::LoadBackMusic("テスト.ogg");
+
+    CoUninitialize();//COM解除
+    return 0;
+}
+
+//ゲームメイン関数
+unsigned __stdcall GameMainThread(void* p)
+{
+    //COM初期化
+    CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+    while (1)
+    {
+        //ゲームメイン
+        TaskSystem::ListAction();//リスト内のアクション実行
+        //衝突判定実行
+        Collision::CheckStart();
+
+        //レンダリングターゲットセットとレンダリング画面クリア
+        float color[] = { 0.0f,0.25f,0.45f,1.0f };
+        Dev::GetDeviceContext()->OMSetRenderTargets(1, Dev::GetppRTV(), NULL);//レンダリング先をカラーバッファ（バックバッファ）にセット
+        Dev::GetDeviceContext()->ClearRenderTargetView(Dev::GetRTV(), color);//画面をcolorでクリア
+        Dev::GetDeviceContext()->RSSetState(Dev::GetRS());//ラスタライズをセット
+        //ここからレンダリング開始
+
+        TaskSystem::ListDraw();//リスト内のドロー実行
+        Collision::DrawDebug();
+
+        //レンダリング終了
+        Dev::GetSwapChain()->Present(1, 0);//60FPSでバックバッファとプライマリバッファの交換
+
+        if (g_ls_game_end==true)
+        {
+            break;
+        }
+    }
+    
+    CoUninitialize();//COM解除
+    return 0;
+}
 
 //Main関数--------------------
 int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmdLine, int nCmdshow)
@@ -76,23 +142,34 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
     Draw::InitPolygonRender(); //ポリゴン表示環境の初期化
     TaskSystem::InitTaskSystem(); //タスクシステム初期化
     Font::InitFontTex();//フォント初期化
-    Collision::InitHitBox();//コリジョン
+    Collision::InitHitBox();//コリジョンの初期化
     //リソース読み込み-------
-    //ミュージック情報取得
-    Audio::LoadBackMusic("テスト.ogg");
-    Audio::StartLoopMusic();//バックミュージックスタート
-   
-    //イメージ読み込み
-    Draw::LoadImage(0, L"Texture.png");//0番目に"Texture.png"を読み込み
+    thread* thread_i = new thread(TextureLoadThread, nullptr);//テクスチャ読み込み
+    thread* thread_m = new thread(MusicLoadThread, nullptr);//ミュージック読み込み
+    //読み込みthread終了まで待機
+    thread_i->join();
+    thread_m->join();
+    //メモリ開放
+    delete thread_i;
+    delete thread_m;
+    
  
     //デバッグ用オブジェクト作成
     CHero* hero = new CHero();
-    TaskSystem::InsertObj(hero);
-    hero = new CHero();
-    TaskSystem::InsertObj(hero);
-    hero = new CHero();
+    hero->m_priority = 90;
     TaskSystem::InsertObj(hero);
 
+    hero = new CHero();
+    hero->m_priority = 80;
+    TaskSystem::InsertObj(hero);
+
+    hero = new CHero();
+    hero->m_priority = 70;
+    TaskSystem::InsertObj(hero);
+
+    TaskSystem::SortPriority();//描画順位変更
+
+    thread* thread_main = new thread(GameMainThread, nullptr);//ゲームメインスレッド開始
     //メッセージループ
     do
     {
@@ -102,24 +179,9 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
             DispatchMessage(&msg);
         }
 
-        TaskSystem::ListAction();//リスト内のアクション実行
-        //衝突判定実行
-        Collision::CheckStart();
-
-        //レンダリングターゲットセットとレンダリング画面クリア
-        float color[] = { 0.0f,0.25f,0.45f,1.0f };
-        Dev::GetDeviceContext()->OMSetRenderTargets(1, Dev::GetppRTV(), NULL);//レンダリング先をカラーバッファ（バックバッファ）にセット
-        Dev::GetDeviceContext()->ClearRenderTargetView(Dev::GetRTV(), color);//画面をcolorでクリア
-        Dev::GetDeviceContext()->RSSetState(Dev::GetRS());//ラスタライズをセット
-        //ここからレンダリング開始
-       
-        TaskSystem::ListDraw();//リスト内のドロー実行
-        Font::StrDraw(L"aい飢えo", 100.0f, 200.0f, 2.0f, 1.0f, 0.0f, 1.0f, 1.0f);
-
-        //レンダリング終了
-        Dev::GetSwapChain()->Present(1, 0);//60FPSでバックバッファとプライマリバッファの交換
-
     } while (msg.message != WM_QUIT);
+    thread_main->join();//ゲームメインスレッド終了待ち
+    delete thread_main;
 
     //ゲームシステム破棄
 
@@ -150,11 +212,13 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM  lParam)
         switch (wParam)
         {
         case VK_ESCAPE:
+            g_ls_game_end = true;
             PostQuitMessage(0);
             break;
         }
         break;
     case WM_CLOSE://ウィンドウを閉じる場合
+        g_ls_game_end = true;
         PostQuitMessage(0);
     case WM_DESTROY://終了する場合
         return 0;

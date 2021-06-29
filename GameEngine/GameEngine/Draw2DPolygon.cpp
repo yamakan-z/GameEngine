@@ -1,3 +1,7 @@
+//STLデバッグ機能をOFFにする
+#define _SECURE_SCL (0)
+#define _HAS_ITERATOR_DEBUGGING (0)
+
 #include "DeviceCreate.h"
 #include "Draw2DPolygon.h"
 #include "DirectXTex.h"
@@ -342,7 +346,7 @@ HRESULT CDraw2DPolygon::InitPolygonRender()
     unsigned short hIndexData[2][3] =
     {
         {0,1,2,},//1面
-        {0,2,3,},//2面
+        {0,3,2,},//2面
     };
 
     //バッファにインデックスステータス設定
