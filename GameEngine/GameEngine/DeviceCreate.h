@@ -14,6 +14,8 @@ public:
 
 	static HRESULT APIENTRY InitDevice(HWND hWnd, int w, int h);//デバイスの初期化
 	static void ShutDown();                                     //終了関数
+	static void Init3DEnvironment();  //3D環境の構築
+	static void Delete3DEnvironment();//3D環境破棄
 
 	//外部で使用する変数
 	static ID3D11Device*            GetDevice()         { return m_pDevice; }
@@ -37,4 +39,8 @@ private:
 	static UINT                          m_nDXGIOutputArraySize; //   DXGI出力群サイズ
 	static IDXGIDevice1*                 m_pDXGIDevice;          //   DXGIデバイス
 	static D3D_FEATURE_LEVEL             m_FeatureLevel;         //   D3D機能レベル
+
+	//3D環境に必要なもの
+	static ID3D11RasterizerState*    m_pRS3D;//D3D11 3D用のラスタライザー
+	static ID3D11DepthStencilView*   m_pDSV; //D3D11 深度ステンシルビュー
 }Dev;
