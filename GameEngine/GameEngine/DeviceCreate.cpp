@@ -39,6 +39,30 @@ void CDeviceCreate::Init3DEnvironment()
     };
     //ラスタライザー3Dの設定
     m_pDevice->CreateRasterizerState(&drd3d, &m_pRS3D);
+
+    //深度ステンシルテクスチャを作成
+    ID3D11Texture2D* pDepthStencil = NULL;
+    D3D11_TEXTURE2D_DESC DescDepth;
+    DescDepth.Width =  800;
+    DescDepth.Height = 600;
+    DescDepth.MipLevels = 1;
+    DescDepth.ArraySize = 1;
+    DescDepth.Format    = DXGI_FORMAT_D24_UNORM_S8_UINT;
+    DescDepth.Usage     = D3D11_USAGE_DEFAULT;
+    DescDepth.BindFlags = D3D11_BIND_DEPTH_STENCIL;
+    DescDepth.CPUAccessFlags     = 0;
+    DescDepth.MiscFlags          = 0;
+    DescDepth.SampleDesc.Count   = 1;
+    DescDepth.SampleDesc.Quality = 0;
+    m_pDevice->CreateTexture2D(&DescDepth, NULL, &pDepthStencil);
+
+    //深度ステンシルを生成
+    D3D11_DEPTH_STENCIL_VIEW_DESC DescDSV;
+    DescDSV.Format             = DescDepth.Format;
+    DescDSV.Flags              = 0;
+    DescDSV.ViewDimension      = D3D11_DSV_DIMENSION_TEXTURE2DMS;
+    DescDSV.Texture2D.MipSlice = 0;
+    m_pDevice->CreateDepthStencilView(pDepthStencil, &DescDSV, &m_pDSV);
 }
 
 //デバイスの初期化
@@ -256,6 +280,15 @@ HRESULT APIENTRY CDeviceCreate::InitDevice(HWND hWnd, int w, int h)
     m_pRS = pRS;
     m_pRTV = pRTV;
     return hr;
+}
+
+//3D環境破棄
+void CDeviceCreate::Delete3DEnvironment()
+{
+    //3D用のラスタライザー破棄
+    SAFE_RELEASE(m_pRS3D);
+    //深度ステンシルのテクスチャーとビューを解放
+    SAFE_RELEASE(m_pDSV);
 }
 
 //終了関数

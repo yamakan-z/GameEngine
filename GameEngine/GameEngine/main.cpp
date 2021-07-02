@@ -23,6 +23,7 @@
 #include "TaskSystem.h"
 #include "FontTex.h"
 #include "Collision.h"
+#include "Render3D.h"
 
 //デバッグ用オブジェクトヘッダ--------------
 #include"Hero.h"
@@ -81,23 +82,36 @@ unsigned __stdcall MusicLoadThread(void* p)
 //ゲームメイン関数
 unsigned __stdcall GameMainThread(void* p)
 {
+
+    //カラーバッファクリア色
+    float color[] = { 0.0f,0.25f,0.45f,1.0f };
     //COM初期化
-    CoInitializeEx(nullptr, COINIT_MULTITHREADED);
+    //CoInitializeEx(nullptr, COINIT_MULTITHREADED);
     while (1)
     {
+        //アクション部分----------
         //ゲームメイン
         TaskSystem::ListAction();//リスト内のアクション実行
         //衝突判定実行
         Collision::CheckStart();
 
-        //レンダリングターゲットセットとレンダリング画面クリア
-        float color[] = { 0.0f,0.25f,0.45f,1.0f };
-        Dev::GetDeviceContext()->OMSetRenderTargets(1, Dev::GetppRTV(), NULL);//レンダリング先をカラーバッファ（バックバッファ）にセット
+        //描画部分-----------
+        //描画バッファ・Zバッファクリア
         Dev::GetDeviceContext()->ClearRenderTargetView(Dev::GetRTV(), color);//画面をcolorでクリア
-        Dev::GetDeviceContext()->RSSetState(Dev::GetRS());//ラスタライズをセット
-        //ここからレンダリング開始
+        Dev::GetDeviceContext()->ClearDepthStencilView(Dev::GetDSV(), D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL, 1.0f, 0);
 
-        TaskSystem::ListDraw();//リスト内のドロー実行
+        //3D描画設定
+        Dev::GetDeviceContext()->RSSetState(Dev::GetRS3D());//3D用ラスタライザーセット
+        Dev::GetDeviceContext()->OMSetRenderTargets(1, Dev::GetppRTV(), Dev::GetDSV());//レンダリング先設定（カラーバッファ・Zバッファ）
+        //ここから3D描画開始
+
+        //2D描画設定
+        Dev::GetDeviceContext()->RSSetState(Dev::GetRS());//2D用ラスタライズをセット
+        Dev::GetDeviceContext()->OMSetRenderTargets(1, Dev::GetppRTV(), NULL);//レンダリング先をカラーバッファ（バックバッファ）にセット
+        //ここから2D描画開始
+
+        //リスト内のドロー実行
+        TaskSystem::ListDraw();
         Collision::DrawDebug();
 
         //レンダリング終了
@@ -109,7 +123,7 @@ unsigned __stdcall GameMainThread(void* p)
         }
     }
     
-    CoUninitialize();//COM解除
+    //CoUninitialize();//COM解除
     return 0;
 }
 
@@ -137,6 +151,8 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
     //ゲーム各システム初期化---
     CWindowCreate::NewWindow(800, 600, name, hInstance);//ウィンドウ作成
     CDeviceCreate::InitDevice(CWindowCreate::GetWnd(), 800, 600);//DirectX Deviceの初期化
+    CDeviceCreate::Init3DEnvironment();//3D環境構築
+    CRender3D::Init();//3D描画環境作成
     Audio::InitAudio();//オーディオ作成
     Input::InitInput();//入力用のクラス初期化
     Draw::InitPolygonRender(); //ポリゴン表示環境の初期化
@@ -189,6 +205,8 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
     Collision::DeleteHitBox();//コリジョンの破棄
     Font::DeleteFontTex();//フォントの破棄
     Draw::DeletePolygonRender();////ポリゴン表示環境の破棄
+    CRender3D::Delete();//3D描画環境の破棄
+    CDeviceCreate::Delete3DEnvironment();//3D環境破棄
     CDeviceCreate::ShutDown();//DirectXの環境破棄
     Audio::DeleteAudio();//オーディオ環境の破棄
 

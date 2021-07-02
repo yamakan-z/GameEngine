@@ -150,6 +150,7 @@
     <ClCompile Include="PolygonDraw.cpp">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="Render3D.cpp" />
     <ClCompile Include="TaskSystem.cpp" />
     <ClCompile Include="WICTextureLoader11.cpp" />
     <ClCompile Include="WindowCreate.cpp" />
@@ -163,6 +164,7 @@
     <ClInclude Include="FontTex.h" />
     <ClInclude Include="Hero.h" />
     <ClInclude Include="Input.h" />
+    <ClInclude Include="Render3D.h" />
     <ClInclude Include="TaskSystem.h" />
     <ClInclude Include="WICTextureLoader11.h" />
     <ClInclude Include="WindowCreate.h" />

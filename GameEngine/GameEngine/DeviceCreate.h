@@ -24,6 +24,8 @@ public:
 	static ID3D11RenderTargetView*  GetRTV()            { return m_pRTV; }
 	static ID3D11RenderTargetView** GetppRTV()          { return &m_pRTV; }
 	static IDXGISwapChain*          GetSwapChain()      { return m_pDXGISwapChain; }
+	static ID3D11RasterizerState*   GetRS3D()           { return m_pRS3D; }
+	static ID3D11DepthStencilView*  GetDSV()            { return m_pDSV; }
 
 
 private:

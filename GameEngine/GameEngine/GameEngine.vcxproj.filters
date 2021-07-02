@@ -43,6 +43,9 @@
     <Filter Include="ソース ファイル\当たり判定">
       <UniqueIdentifier>{25b80a2c-f38c-4d19-9c30-23616c2e027c}</UniqueIdentifier>
     </Filter>
+    <Filter Include="ソース ファイル\3Dモデル描画">
+      <UniqueIdentifier>{36d79439-d189-44ee-99cc-0c6c9681a66b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -81,6 +84,9 @@
     <ClCompile Include="Collision.cpp">
       <Filter>ソース ファイル\当たり判定</Filter>
     </ClCompile>
+    <ClCompile Include="Render3D.cpp">
+      <Filter>ソース ファイル\3Dモデル描画</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DirectXTex.h">
@@ -115,6 +121,9 @@
     </ClInclude>
     <ClInclude Include="Collision.h">
       <Filter>ソース ファイル\当たり判定</Filter>
+    </ClInclude>
+    <ClInclude Include="Render3D.h">
+      <Filter>ソース ファイル\3Dモデル描画</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
