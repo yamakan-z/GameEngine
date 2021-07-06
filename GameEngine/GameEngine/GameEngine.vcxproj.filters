@@ -87,6 +87,9 @@
     <ClCompile Include="Render3D.cpp">
       <Filter>ソース ファイル\3Dモデル描画</Filter>
     </ClCompile>
+    <ClCompile Include="ModelCreate3D.cpp">
+      <Filter>ソース ファイル\3Dモデル描画</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DirectXTex.h">

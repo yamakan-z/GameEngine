@@ -39,6 +39,9 @@ public:
 	CMATERIAL         m_Material;     //モデルの材質情報
 	ID3D11Buffer*     m_pVertexBuffer;//バーテックスバッファ（モデルの頂点情報）
 	ID3D11Buffer*     m_pIndexBuffer; //インデックスバッファ（モデルの面情報）
+
+	//三角錐Model作成
+	void CreateSampleTriangularpyramid();//サンプル用の三角錐を作成
 };
 
 //3Dレンダリングクラス
@@ -49,6 +52,8 @@ public:
 	~CRender3D(){}
 	static void Init();
 	static void Delete();
+
+	static void Render(CMODEL* modle); //モデルをレンダリングする
 
 private:
 	static ID3D11VertexShader* m_pVertexShader;//バーテックスシェーダー

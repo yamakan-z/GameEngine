@@ -49,7 +49,8 @@
 
 
 //グローバル変数------
-atomic<bool>g_ls_game_end = false;
+atomic<bool>g_ls_game_end = false; //スレッド用ゲーム終了フラグ
+CMODEL* mod;                       //モデル情報を持つポインタ
 
 //プロトタイプ変数
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);//ウィンドウプロジージャー
@@ -104,6 +105,7 @@ unsigned __stdcall GameMainThread(void* p)
         Dev::GetDeviceContext()->RSSetState(Dev::GetRS3D());//3D用ラスタライザーセット
         Dev::GetDeviceContext()->OMSetRenderTargets(1, Dev::GetppRTV(), Dev::GetDSV());//レンダリング先設定（カラーバッファ・Zバッファ）
         //ここから3D描画開始
+        Render::Render(mod);
 
         //2D描画設定
         Dev::GetDeviceContext()->RSSetState(Dev::GetRS());//2D用ラスタライズをセット
@@ -185,6 +187,10 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
 
     TaskSystem::SortPriority();//描画順位変更
 
+    //3Dモデル読み込み
+    mod = new CMODEL();
+    mod->CreateSampleTriangularpyramid();
+
     thread* thread_main = new thread(GameMainThread, nullptr);//ゲームメインスレッド開始
     //メッセージループ
     do
@@ -198,6 +204,9 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
     } while (msg.message != WM_QUIT);
     thread_main->join();//ゲームメインスレッド終了待ち
     delete thread_main;
+
+    //3Dモデル破棄
+    delete mod;
 
     //ゲームシステム破棄
 
