@@ -41,7 +41,7 @@ void CMODEL::CreateSampleTriangularpyramid()
     //三角錐の面を形成するための頂点インデックス情報
     unsigned short hIndexData[4][3] =
     {
-        {0,1,2,},//1面
+        {0,3,1,},//1面
         {0,3,2,},//2面
         {2,3,1,},//3面
         {0,2,1,},//4面

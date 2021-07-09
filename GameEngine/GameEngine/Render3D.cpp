@@ -123,6 +123,7 @@ void CRender3D::Init()
 	SAFE_RELEASE(pCompiledShader);
 }
 
+//破棄メソッド
 void CRender3D::Delete()
 {
 	SAFE_RELEASE(m_pPixelShader);   //ピクセルシェーダー破棄
