@@ -164,4 +164,18 @@ void Rotate(float mat[16], float angle, float axis[3], float dest[16])
 		c *= sq;
 	}
 
+	float d = sin(angle), e = cos(angle), f = 1 - e;
+	float g = mat[ 0], h = mat[ 1], i = mat[ 2], j = mat[ 3];
+	float k = mat[ 4], l = mat[ 5], m = mat[ 6], n = mat[ 7];
+	float o = mat[ 8], p = mat[ 9], q = mat[10], r = mat[11];
+	float s = a * a * f + e;
+	float t = b * a * f + c * d;
+	float u = c * a * f - b * d;
+	float v = a * b * f - c * d;
+	float w = b * b * f + e;
+	float x = c * b * f + a * d;
+	float y = a * c * f + b * d;
+	float z = b * c * f - a * d;
+	float A = c * c * f + e;
+
 }
