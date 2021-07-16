@@ -166,6 +166,7 @@
     <ClInclude Include="FontTex.h" />
     <ClInclude Include="Hero.h" />
     <ClInclude Include="Input.h" />
+    <ClInclude Include="Math3D.h" />
     <ClInclude Include="Render3D.h" />
     <ClInclude Include="TaskSystem.h" />
     <ClInclude Include="WICTextureLoader11.h" />

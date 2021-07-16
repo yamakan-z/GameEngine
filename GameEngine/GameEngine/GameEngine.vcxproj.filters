@@ -131,6 +131,9 @@
     <ClInclude Include="Render3D.h">
       <Filter>ソース ファイル\3Dモデル描画</Filter>
     </ClInclude>
+    <ClInclude Include="Math3D.h">
+      <Filter>ソース ファイル\3Dモデル描画</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="DirectXTex.inl">

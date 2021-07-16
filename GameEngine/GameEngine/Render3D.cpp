@@ -1,10 +1,11 @@
 #include "Render3D.h"
 #include "DeviceCreate.h"
+#include "Math3D.h"
 
-
-ID3D11VertexShader*   CRender3D::m_pVertexShader;//バーテックスシェーダー
-ID3D11PixelShader*    CRender3D::m_pPixelShader; //ピクセルシェーダー
-ID3D11InputLayout*    CRender3D::m_pVertexLayout;//頂点入力レイアウト
+ID3D11VertexShader*   CRender3D::m_pVertexShader;   //バーテックスシェーダー
+ID3D11PixelShader*    CRender3D::m_pPixelShader;    //ピクセルシェーダー
+ID3D11InputLayout*    CRender3D::m_pVertexLayout;   //頂点入力レイアウト
+ID3D11Buffer*         CRender3D::m_pConstantBuffer; //コンスタントバッファ
 
 //HLSLソースコード（メモリ内登録）
 const char* g_hlsl_sause_code =
@@ -26,15 +27,21 @@ const char* g_hlsl_sause_code =
 	"  float2 uv  : UV;           \n"
 	"};                           \n"
 
+	//コンスタントバッファ受取先
+	"cbuffer global               \n"
+	"{                            \n"
+	"  float4x4 mat;              \n"
+	"};                           \n"
+
 	//頂点シェーダ
-   "vertexOut vs(vertexIn IN)      \n"
-   "{                              \n" 
-	"vertexOut OUT;                \n"
-	"OUT.pos = IN.pos;             \n"
-	"OUT.col = IN.col;             \n"
-	"OUT.uv  = IN.uv;              \n"
-	"return OUT;                   \n"
-    "}                             \n"	
+   "vertexOut vs(vertexIn IN)               \n"
+   "{                                       \n" 
+	"vertexOut OUT;                         \n"
+	"OUT.pos = mul(IN.pos,transpose(mat));  \n"
+	"OUT.col = IN.col;                      \n"
+	"OUT.uv  = IN.uv;                       \n"
+	"return OUT;                            \n"
+    "}                                      \n"	
 
 	//ピクセルシェーダ
    "float4 ps(vertexOut IN) :SV_Target   \n"
@@ -121,18 +128,37 @@ void CRender3D::Init()
 		return;
 	}
 	SAFE_RELEASE(pCompiledShader);
+
+	//バッファにコンスタントバッファ（シェーダにデータ受け渡し用）ステータスを設定
+	D3D11_BUFFER_DESC cb;
+	cb.BindFlags           = D3D11_BIND_CONSTANT_BUFFER;
+	cb.ByteWidth           = sizeof(CMODEL3D_BUFFER);
+	cb.CPUAccessFlags      = D3D11_CPU_ACCESS_WRITE;
+	cb.MiscFlags           = 0;
+	cb.StructureByteStride = 0;
+	cb.Usage               = D3D11_USAGE_DYNAMIC;
+
+	//ステータスを元にコンスタントバッファを作成
+	hr = Dev::GetDevice()->CreateBuffer(&cb, NULL, &m_pConstantBuffer);
+	if (FAILED(hr))
+	{
+		MessageBox(0, L"コンスタントバッファ作成失敗", NULL, MB_OK);
+		return;
+	}
+
 }
 
 //破棄メソッド
 void CRender3D::Delete()
 {
+	SAFE_RELEASE(m_pConstantBuffer);//コンスタントバッファ破棄
 	SAFE_RELEASE(m_pPixelShader);   //ピクセルシェーダー破棄
 	SAFE_RELEASE(m_pVertexLayout);  //頂点入力レイアウト破棄
 	SAFE_RELEASE(m_pVertexShader);  //バーテックスシェーダー
 }
 
 //モデルをレンダリングする
-void CRender3D::Render(CMODEL* modle)
+void CRender3D::Render(CMODEL* modle,float mat[16])
 {
 	//頂点レイアウト
 	Dev::GetDeviceContext()->IASetInputLayout(m_pVertexLayout);
@@ -140,6 +166,11 @@ void CRender3D::Render(CMODEL* modle)
 	//使用するシェーダーの登録
 	Dev::GetDeviceContext()->VSSetShader(m_pVertexShader, NULL, 0);
 	Dev::GetDeviceContext()->PSSetShader(m_pPixelShader,  NULL, 0);
+
+	//コンスタントバッファを使用するシェーダに登録
+	Dev::GetDeviceContext()->VSSetConstantBuffers(0, 1, &m_pConstantBuffer);
+	Dev::GetDeviceContext()->PSSetConstantBuffers(0, 1, &m_pConstantBuffer);
+
 
 	//プリミティブ・トポロジーをセット
 	Dev::GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
@@ -150,6 +181,26 @@ void CRender3D::Render(CMODEL* modle)
 	//インデックスバッファ登録
 	Dev::GetDeviceContext()->IASetIndexBuffer(modle->m_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
 
+	//コンスタントバッファのデータ登録
+	D3D11_MAPPED_SUBRESOURCE pData;
+	if (SUCCEEDED(Dev::GetDeviceContext()->Map(m_pConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &pData)))
+	{
+		CMODEL3D_BUFFER data;
+
+		//トランスフォーム行列情報コンスタントバッファに渡す
+		if (mat == nullptr)
+		{
+			Math3D::IdentityMatrix(data.m_mat);//ない場合は単位行列
+		}
+		else
+		{
+			memcpy(data.m_mat, mat, sizeof(float) * 16);
+		}
+		memcpy_s(pData.pData, pData.RowPitch, (void*)&data, sizeof(CMODEL3D_BUFFER));
+		//コンスタントバッファをシェーダに輸送
+		Dev::GetDeviceContext()->Unmap(m_pConstantBuffer, 0);
+	}
+
 	//登録した情報を元にポリゴン描画
-	Dev::GetDeviceContext()->DrawIndexed(modle->m_index_size, 0, 0);
+	Dev::GetDeviceContext()->DrawIndexed(modle->m_index_size*3, 0, 0);
 }

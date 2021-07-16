@@ -10,6 +10,14 @@
 #define SAFE_DELETE_ARRAY(p)   {if(p){delete[](p);    (p)=nullptr;}}
 #define SAFE_RELEASE(p)        {if(p){(p)->Release(); (p)=nullptr;}}
 
+//コンスタントバッファクラス
+class CMODEL3D_BUFFER
+{
+public:
+	float m_mat[16];//トランスフォーム用行列
+};
+
+
 //頂点レイアウトクラス（頂点が持つ情報）
 class CPOINT3D_LAYOUT
 {
@@ -53,11 +61,12 @@ public:
 	static void Init();
 	static void Delete();
 
-	static void Render(CMODEL* modle); //モデルをレンダリングする
+	static void Render(CMODEL* modle,float mat[16]); //モデルをレンダリングする
 
 private:
-	static ID3D11VertexShader* m_pVertexShader;//バーテックスシェーダー
-	static ID3D11PixelShader*  m_pPixelShader; //ピクセルシェーダー
-	static ID3D11InputLayout*  m_pVertexLayout;//頂点入力レイアウト
+	static ID3D11VertexShader* m_pVertexShader;   //バーテックスシェーダー
+	static ID3D11PixelShader*  m_pPixelShader;    //ピクセルシェーダー
+	static ID3D11InputLayout*  m_pVertexLayout;   //頂点入力レイアウト
+	static ID3D11Buffer*       m_pConstantBuffer; //コンスタントバッファ
 
 }Render;

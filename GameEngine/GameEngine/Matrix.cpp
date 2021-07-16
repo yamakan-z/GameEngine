@@ -1,7 +1,8 @@
 #include <math.h>
+#include "Math3D.h"
 
 //単位行列作成関数
-void IdentityMatrix(float dest[16])
+void Math3D::IdentityMatrix(float dest[16])
 {
 	dest[ 0] =  1; dest[ 1] =  0; dest[ 2] =  0; dest[ 3] =  0;
 	dest[ 4] =  0; dest[ 5] =  1; dest[ 6] =  0; dest[ 7] =  0;
@@ -11,7 +12,7 @@ void IdentityMatrix(float dest[16])
 }
 
 //行列合成関数
-void Multiply(float mat1[16], float mat2[16],float dest[16])
+void Math3D::Multiply(float mat1[16], float mat2[16],float dest[16])
 {
 	float a = mat1[ 0], b = mat1[ 1], c = mat1[ 2], d = mat1[ 3];
 	float e = mat1[ 4], f = mat1[ 5], g = mat1[ 6], h = mat1[ 7];
@@ -42,7 +43,7 @@ void Multiply(float mat1[16], float mat2[16],float dest[16])
 }
 
 //転換行列関数
-void Transpose(float mat[16], float dest[16])
+void Math3D::Transpose(float mat[16], float dest[16])
 {
 	dest[ 0] = mat[ 0]; dest[ 1] = mat[ 4];
 	dest[ 2] = mat[ 8]; dest[ 3] = mat[12];
@@ -56,7 +57,7 @@ void Transpose(float mat[16], float dest[16])
 }
 
 //逆行列関数
-void Inverse(float mat[16], float dest[16])
+void Math3D::Inverse(float mat[16], float dest[16])
 {
 	float a = mat[ 0], b = mat[ 1], c = mat[ 2], d = mat[ 3];
 	float e = mat[ 4], f = mat[ 5], g = mat[ 6], h = mat[ 7];
@@ -97,7 +98,7 @@ void Inverse(float mat[16], float dest[16])
 }
 
 //位置と行列の合成関数
-void Transform(float pos[3], float mat[16], float dest[3])
+void Math3D::Transform(float pos[3], float mat[16], float dest[3])
 {
 	float a = mat[ 0], b = mat[ 1], c = mat[ 2], d = mat[ 3];
 	float e = mat[ 4], f = mat[ 5], g = mat[ 6], h = mat[ 7];
@@ -112,7 +113,7 @@ void Transform(float pos[3], float mat[16], float dest[3])
 }
 
 //拡縮行列関数
-void Scale(float mat[16], float vec[3], float dest[16])
+void Math3D::Scale(float mat[16], float vec[3], float dest[16])
 {
 	dest[ 0] = mat[ 0] * vec[0];
 	dest[ 1] = mat[ 1] * vec[0];
@@ -133,7 +134,7 @@ void Scale(float mat[16], float vec[3], float dest[16])
 }
 
 //平行移動行列関数
-void Translate(float mat[16], float vec[3], float dest[16])
+void Math3D::Translate(float mat[16], float vec[3], float dest[16])
 {
 	dest[ 0] = mat[ 0]; dest[ 1] = mat[ 1]; dest[ 2] = mat[ 2]; dest[ 3] = mat[ 3];
 	dest[ 4] = mat[ 4]; dest[ 5] = mat[ 5]; dest[ 6] = mat[ 6]; dest[ 7] = mat[ 7];
@@ -146,7 +147,7 @@ void Translate(float mat[16], float vec[3], float dest[16])
 }
 
 //回転行列関数
-void Rotate(float mat[16], float angle, float axis[3], float dest[16])
+void Math3D::Rotate(float mat[16], float angle, float axis[3], float dest[16])
 {
 	float sq = sqrt(axis[0] * axis[0] + axis[1] * axis[1] + axis[2] + axis[2]);
 	float a = axis[0], b = axis[1], c = axis[2];
@@ -177,5 +178,126 @@ void Rotate(float mat[16], float angle, float axis[3], float dest[16])
 	float y = a * c * f + b * d;
 	float z = b * c * f - a * d;
 	float A = c * c * f + e;
+
+	if (angle)
+	{
+		if (mat != dest)
+		{
+			dest[12] = mat[12]; dest[13] = mat[13];
+			dest[14] = mat[14]; dest[15] = mat[15];
+		}
+	}
+	else
+	{
+		dest = mat;
+	}
+
+	dest[ 0] = g * s + k * t + o * u;
+	dest[ 1] = h * s + l * t + p * u;
+	dest[ 2] = i * s + m * t + q * u;
+	dest[ 3] = j * s + n * t + r * u;
+	dest[ 4] = g * v + k * w + o * x;
+	dest[ 5] = h * v + l * w + p * x;
+	dest[ 6] = i * v + m * w + q * x;
+	dest[ 7] = j * v + n * w + r * x;
+	dest[ 8] = g * y + k * z + o * A;
+	dest[ 9] = h * y + l * z + p * A;
+	dest[10] = i * y + m * z + q * A;
+	dest[11] = j * y + n * z + r * A;
+	return;
+
+}
+
+//ビュー行列関数
+void Math3D::LookAt(float eye[3], float center[3], float up[3], float dest[16])
+{
+	float eyeX = eye[0], eyeY = eye[1], eyeZ = eye[2];//カメラの位置
+	float upX = up[0], upY = up[1], upZ = up[2];//カメラのY軸ベクトル
+	float centerX = center[0], centerY = center[1], centerZ = center[2];//カメラの注目位置
+
+	//カメラの位置と注目位置が同じ場合　エラー
+	if (eyeX == centerX && eyeY == centerY && eyeZ == centerZ)
+	{
+		return;
+	}
+
+	//カメラの向きのベクトルの取得
+	float x0, x1, x2, y0, y1, y2, z0, z1, z2, l;
+	z0 = eyeX - center[0];
+	z1 = eyeY - center[1];
+	z2 = eyeZ - center[2];
+	l = 1.0f / sqrt(z0 * z0 + z1 * z1 + z2 * z2);
+	z0 *= l; z1 *= l; z2 += l;
+
+	//カメラのY軸ベクトルとカメラの向きベクトルで法線を取得
+	x0 = upY * z2 - upZ * z1;
+	x1 = upZ * z0 - upX * z2;
+	x2 = upX * z1 - upY * z0;
+	l = sqrt(x0 * x0 + x1 * x1 + x2 * x2);
+
+	//外積計算不可チェック
+	if (!l)
+	{
+		x0 = 0; x1 = 0; x2 = 0;
+	}
+	else
+	{
+		l = 1 / l;
+		x0 *= l; x1 *= l; x2 *= l;
+	}
+
+	//カメラの向きベクトルと法線
+	y0 = z1 * x2 - z2 * x1;
+	y1 = z2 * x0 - z0 * x2;
+	y2 = z0 * x1 - z1 * x0;
+	l = sqrt(y0 * y0 + y1 * y1 + y2 * y2);
+
+	if (!l)
+	{
+		y0 = 0.0f; y1 = 0.0f; y2 = 0.0f;
+	}
+	else
+	{
+		l = 1.0f / l;
+		y0 *= l; y1 *= l; y2 *= l;
+	}
+
+	//行列登録
+	dest[ 0] = x0; dest[ 1] = y0; dest[ 2] = z0; dest[ 3] = 0.0f;
+	dest[ 4] = x1; dest[ 5] = y1; dest[ 6] = z1; dest[ 7] = 0.0f;
+	dest[ 8] = x2; dest[ 9] = y2; dest[10] = z2; dest[11] = 0.0f;
+	dest[12] = -(x0 * eyeX + x1 * eyeY + x2 * eyeZ);
+	dest[13] = -(y0 * eyeX + y1 * eyeY + y2 * eyeZ);
+	dest[14] = -(z0 * eyeX + z1 * eyeY + z2 * eyeZ);
+	dest[15] = 1.0f;
+	return;
+}
+
+//プロダクション行列関数
+void Math3D::Perspective(float fovy, float aspect, float near, float far, float dest[16])
+{
+	float t = near * tan(fovy * 3.14 / 360.0f);
+	float r = t * aspect;
+	float a = r * 2.0f;
+	float b = t * 2.0f;
+	float c = far - near;
+
+	dest[ 0] = near * 2.0f / a;
+	dest[ 1] = 0.0f;
+	dest[ 2] = 0.0f;
+	dest[ 3] = 0.0f;
+	dest[ 4] = 0.0f;
+	dest[ 5] = near * 2.0 / b;
+	dest[ 6] = 0.0f;
+	dest[ 7] = 0.0f;
+	dest[ 8] = 0.0f;
+	dest[ 9] = 0.0f;
+	dest[10] = -(far + near) / c;
+	dest[11] = -1.0f;
+	dest[12] = 0.0f;
+	dest[13] = 0.0f;
+	dest[14] = -(far * near * 2.0f) / c;
+	dest[15] = 0.0f;
+	return;
 
 }
