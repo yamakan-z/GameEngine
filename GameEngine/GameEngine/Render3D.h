@@ -34,7 +34,9 @@ class CMATERIAL
 public:
 	float m_diffuse[3];                  //ディユーズ（拡散反射）
 	float m_specular[3];                 //スペキュラ（鏡面反射）
+	float m_specular_power;              //スペキュラパワー
 	float m_ambient[3];                  //アンビエント（環境光）
+	float m_emissive[4];                 //エミッシブ（放射線（自己発光））
 	ID3D11ShaderResourceView* m_pTexture;//テクスチャ
 };
 
@@ -42,11 +44,13 @@ public:
 class CMODEL
 {
 public:
-	int m_vertex_size;                //最大頂点数
-	int m_index_size;                 //最大面数
-	CMATERIAL         m_Material;     //モデルの材質情報
-	ID3D11Buffer*     m_pVertexBuffer;//バーテックスバッファ（モデルの頂点情報）
-	ID3D11Buffer*     m_pIndexBuffer; //インデックスバッファ（モデルの面情報）
+	~CMODEL();
+	int* m_pvertex_size;                 //最大頂点数
+	int* m_pindex_size;                  //最大面数
+	CMATERIAL*         m_Material;      //モデルの材質情報
+	ID3D11Buffer**     m_ppVertexBuffer;//バーテックスバッファ（モデルの頂点情報）
+	ID3D11Buffer**     m_ppIndexBuffer; //インデックスバッファ（モデルの面情報）
+	int m_material_max;                 //マテリアルの数
 
 	//三角錐Model作成
 	void CreateSampleTriangularpyramid();//サンプル用の三角錐を作成

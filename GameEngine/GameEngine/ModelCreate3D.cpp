@@ -1,6 +1,23 @@
 #include "DeviceCreate.h"
 #include "Render3D.h"
 
+CMODEL::~CMODEL()
+{
+    delete[] m_pvertex_size;
+    delete[] m_pindex_size;
+    delete[] m_Material;
+
+    for (int i = 0; i < m_material_max; i++)
+    {
+        m_ppVertexBuffer[i]->Release();
+        m_ppIndexBuffer[i]->Release();
+    }
+
+    delete[] m_ppVertexBuffer;
+    delete[] m_ppIndexBuffer;
+}
+
+
 //三角錐Model作成
 void CMODEL::CreateSampleTriangularpyramid()
 {
@@ -17,6 +34,16 @@ void CMODEL::CreateSampleTriangularpyramid()
 
 	};
 
+    //ヴァーテックス・インデックスバッファ・材質量を決める（一つのみ）
+    m_ppVertexBuffer = new ID3D11Buffer * [1];
+    m_ppIndexBuffer  = new ID3D11Buffer * [1];
+    m_Material       = new CMATERIAL[1];
+
+    //各バッファ最大数を入れる配列の作成とマテリアルカウントの初期化
+    this->m_material_max = 1; //三角錐は材質を使っていないが0だと0番目のバッファ描画されないので1を入れる
+    m_pvertex_size = new int[1];
+    m_pindex_size = new int[1];
+
     //バッファにバーテックスステータス設定
     D3D11_BUFFER_DESC bd;
     bd.Usage = D3D11_USAGE_DEFAULT;
@@ -30,7 +57,7 @@ void CMODEL::CreateSampleTriangularpyramid()
     InitData.pSysMem = vertices;
 
     //ステータスとバッファに入れるデータを元にバーテックスバッファ作成
-    hr = Dev::GetDevice()->CreateBuffer(&bd, &InitData, &m_pVertexBuffer);
+    hr = Dev::GetDevice()->CreateBuffer(&bd, &InitData, &m_ppVertexBuffer[0]);
     if (FAILED(hr))
     {
         MessageBox(0, L"バーテックスバッファ作成失敗", NULL, MB_OK);
@@ -63,7 +90,7 @@ void CMODEL::CreateSampleTriangularpyramid()
     hSubResourceData.SysMemSlicePitch = 0;
 
     //ステータスとバッファに入れるデータを元にインデックスバッファ作成
-    hr = Dev::GetDevice()->CreateBuffer(&hBufferDesc, &hSubResourceData, &m_pIndexBuffer);
+    hr = Dev::GetDevice()->CreateBuffer(&hBufferDesc, &hSubResourceData, &m_ppIndexBuffer[0]);
     if (FAILED(hr))
     {
         MessageBox(0, L"インデックスバッファ作成失敗", NULL, MB_OK);
@@ -71,12 +98,13 @@ void CMODEL::CreateSampleTriangularpyramid()
     }
 
     //材質情報
-    memset(m_Material.m_ambient,  0x00,  sizeof(m_Material.m_ambient ));
-    memset(m_Material.m_diffuse,  0x00,  sizeof(m_Material.m_diffuse ));
-    memset(m_Material.m_specular, 0x00,  sizeof(m_Material.m_specular));
-    m_Material.m_pTexture = nullptr;
+    memset(m_Material->m_ambient,  0x00,  sizeof(m_Material->m_ambient ));
+    memset(m_Material->m_diffuse,  0x00,  sizeof(m_Material->m_diffuse ));
+    memset(m_Material->m_specular, 0x00,  sizeof(m_Material->m_specular));
+    m_Material->m_pTexture = nullptr;
+    m_Material->m_pTexture = nullptr;
 
     //頂点・インデックスの大きさ
-    m_index_size = 4;
-    m_vertex_size = 4;
+    m_pindex_size[0]  = 4;
+    m_pvertex_size[0] = 4;
 }

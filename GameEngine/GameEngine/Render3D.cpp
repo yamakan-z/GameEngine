@@ -174,33 +174,41 @@ void CRender3D::Render(CMODEL* modle,float mat[16])
 
 	//プリミティブ・トポロジーをセット
 	Dev::GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
-	//バーテックスバッファ登録
-	UINT stride = sizeof(CPOINT3D_LAYOUT);
-	UINT offset = 0;
-	Dev::GetDeviceContext()->IASetVertexBuffers(0, 1, &modle->m_pVertexBuffer, &stride, &offset);
-	//インデックスバッファ登録
-	Dev::GetDeviceContext()->IASetIndexBuffer(modle->m_pIndexBuffer, DXGI_FORMAT_R16_UINT, 0);
 
-	//コンスタントバッファのデータ登録
-	D3D11_MAPPED_SUBRESOURCE pData;
-	if (SUCCEEDED(Dev::GetDeviceContext()->Map(m_pConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &pData)))
+	for (int i = 0; i < modle->m_material_max; i++)
 	{
-		CMODEL3D_BUFFER data;
+		//バーテックスバッファ登録
+		UINT stride = sizeof(CPOINT3D_LAYOUT);
+		UINT offset = 0;
+		Dev::GetDeviceContext()->IASetVertexBuffers(0, 1, &modle->m_ppVertexBuffer[i], &stride, &offset);
+		//インデックスバッファ登録
+		Dev::GetDeviceContext()->IASetIndexBuffer(modle->m_ppIndexBuffer[i], DXGI_FORMAT_R16_UINT, 0);
 
-		//トランスフォーム行列情報コンスタントバッファに渡す
-		if (mat == nullptr)
+		//コンスタントバッファのデータ登録
+		D3D11_MAPPED_SUBRESOURCE pData;
+		if (SUCCEEDED(Dev::GetDeviceContext()->Map(m_pConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &pData)))
 		{
-			Math3D::IdentityMatrix(data.m_mat);//ない場合は単位行列
+			CMODEL3D_BUFFER data;
+
+			//トランスフォーム行列情報コンスタントバッファに渡す
+			if (mat == nullptr)
+			{
+				Math3D::IdentityMatrix(data.m_mat);//ない場合は単位行列
+			}
+			else
+			{
+				memcpy(data.m_mat, mat, sizeof(float) * 16);
+			}
+			memcpy_s(pData.pData, pData.RowPitch, (void*)&data, sizeof(CMODEL3D_BUFFER));
+			//コンスタントバッファをシェーダに輸送
+			Dev::GetDeviceContext()->Unmap(m_pConstantBuffer, 0);
 		}
-		else
-		{
-			memcpy(data.m_mat, mat, sizeof(float) * 16);
-		}
-		memcpy_s(pData.pData, pData.RowPitch, (void*)&data, sizeof(CMODEL3D_BUFFER));
-		//コンスタントバッファをシェーダに輸送
-		Dev::GetDeviceContext()->Unmap(m_pConstantBuffer, 0);
+
+		//登録した情報を元にポリゴン描画
+		Dev::GetDeviceContext()->DrawIndexed(modle->m_pindex_size[i] * 3, 0, 0);
+
 	}
+	
 
-	//登録した情報を元にポリゴン描画
-	Dev::GetDeviceContext()->DrawIndexed(modle->m_index_size*3, 0, 0);
+	
 }

@@ -132,7 +132,7 @@ unsigned __stdcall GameMainThread(void* p)
         //原点からX方向に2移動
         float pos[3] = { 2.0f,0.0f,0.0f };
         Math3D::IdentityMatrix(mat_w);//行列を初期化
-        Math3D::Translate(mat_w, pos, mat_w);//平行移動X軸２進む行列をmat_wに作成
+        Math3D::Translation(mat_w, pos, mat_w);//平行移動X軸２進む行列をmat_wに作成
 
         //三つの行列をmat_WVPに合成
         Math3D::Multiply(mat_w, mat_WVP, mat_WVP);
@@ -142,16 +142,16 @@ unsigned __stdcall GameMainThread(void* p)
         Render::Render(mod,mat_WVP);//一つ目のモデル描画
 
         //原点からX方向に2移動
-        float pos[3] = { 1.0f,0.0f,0.0f };
+        float pos_two[3] = { 1.0f,0.0f,0.0f };//1つめの位置を変える
         Math3D::IdentityMatrix(mat_w);//行列を初期化
-        Math3D::Translate(mat_w, pos, mat_w);//平行移動X軸２進む行列をmat_wに作成
+        Math3D::Translation(mat_w, pos_two, mat_w);//平行移動X軸２進む行列をmat_wに作成
 
         //三つの行列をmat_WVPに合成
         Math3D::Multiply(mat_w, mat_WVP, mat_WVP);
         Math3D::Multiply(mat_v, mat_WVP, mat_WVP);
         Math3D::Multiply(mat_p, mat_WVP, mat_WVP);
 
-        Render::Render(mod, mat_WVP);//一つ目のモデル描画
+        Render::Render(mod, mat_WVP);//2つ目のモデル描画
 
         //2D描画設定
         Dev::GetDeviceContext()->RSSetState(Dev::GetRS());//2D用ラスタライズをセット

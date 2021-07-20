@@ -134,7 +134,7 @@ void Math3D::Scale(float mat[16], float vec[3], float dest[16])
 }
 
 //•½sˆÚ“®s—ñŠÖ”
-void Math3D::Translate(float mat[16], float vec[3], float dest[16])
+void Math3D::Translation(float mat[16], float vec[3], float dest[16])
 {
 	dest[ 0] = mat[ 0]; dest[ 1] = mat[ 1]; dest[ 2] = mat[ 2]; dest[ 3] = mat[ 3];
 	dest[ 4] = mat[ 4]; dest[ 5] = mat[ 5]; dest[ 6] = mat[ 6]; dest[ 7] = mat[ 7];
