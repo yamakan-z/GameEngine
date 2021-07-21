@@ -139,10 +139,10 @@ void Math3D::Translation(float mat[16], float vec[3], float dest[16])
 	dest[ 0] = mat[ 0]; dest[ 1] = mat[ 1]; dest[ 2] = mat[ 2]; dest[ 3] = mat[ 3];
 	dest[ 4] = mat[ 4]; dest[ 5] = mat[ 5]; dest[ 6] = mat[ 6]; dest[ 7] = mat[ 7];
 	dest[ 8] = mat[ 8]; dest[ 9] = mat[ 9]; dest[10] = mat[10]; dest[11] = mat[11];
-	dest[12] = mat[ 0] * vec[ 0] + mat[ 4] * vec[ 1] + mat[ 8] + vec[ 2] + mat[12];
-	dest[13] = mat[ 1] * vec[ 0] + mat[ 5] * vec[ 1] + mat[ 9] + vec[ 2] + mat[13];
-	dest[14] = mat[ 2] * vec[ 0] + mat[ 6] * vec[ 1] + mat[10] + vec[ 2] + mat[14];
-	dest[15] = mat[ 3] * vec[ 0] + mat[ 7] * vec[ 1] + mat[11] + vec[ 2] + mat[15];
+	dest[12] = mat[ 0] * vec[ 0] + mat[ 4] * vec[ 1] + mat[ 8] * vec[ 2] + mat[12];
+	dest[13] = mat[ 1] * vec[ 0] + mat[ 5] * vec[ 1] + mat[ 9] * vec[ 2] + mat[13];
+	dest[14] = mat[ 2] * vec[ 0] + mat[ 6] * vec[ 1] + mat[10] * vec[ 2] + mat[14];
+	dest[15] = mat[ 3] * vec[ 0] + mat[ 7] * vec[ 1] + mat[11] * vec[ 2] + mat[15];
 	return;
 }
 
@@ -227,7 +227,7 @@ void Math3D::LookAt(float eye[3], float center[3], float up[3], float dest[16])
 	z1 = eyeY - center[1];
 	z2 = eyeZ - center[2];
 	l = 1.0f / sqrt(z0 * z0 + z1 * z1 + z2 * z2);
-	z0 *= l; z1 *= l; z2 += l;
+	z0 *= l; z1 *= l; z2 *= l;
 
 	//カメラのY軸ベクトルとカメラの向きベクトルで法線を取得
 	x0 = upY * z2 - upZ * z1;

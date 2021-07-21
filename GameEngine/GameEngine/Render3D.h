@@ -54,6 +54,8 @@ public:
 
 	//三角錐Model作成
 	void CreateSampleTriangularpyramid();//サンプル用の三角錐を作成
+	//CMOファイル読み込み
+	void LoadCmoModel(const wchar_t* name);
 };
 
 //3Dレンダリングクラス
