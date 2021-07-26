@@ -109,6 +109,10 @@ unsigned __stdcall GameMainThread(void* p)
 
         //平行ライトをONにする
         Render::SetLightVec(-1.0f, -0.5f, 0.0f, true);
+        //点ライトをONにする
+        static int sin_r = 0;
+        sin_r += 1;
+        Render::SetLightPos(sin(3.14 / 180 * sin_r) * 2.0f, 0.8f, 0.0f, 3.0f);
 
         float mat_w[16];//ワールド行列
         float mat_v[16];//ビュー（カメラ）行列

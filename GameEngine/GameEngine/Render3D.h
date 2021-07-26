@@ -17,6 +17,7 @@ public:
 	float m_mat[16];//トランスフォーム用行列
 	float m_mat_w[16];//法線用のワールド行列
 	float m_light_vec[4];//平行ライトの方向
+	float m_light_pos[4];//点ライトの位置と出力幅
 };
 
 

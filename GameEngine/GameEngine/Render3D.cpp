@@ -19,7 +19,7 @@ const char* g_hlsl_sause_code =
     "	float4 pos : POSITION;    \n"
     "	float4 col : COLOR;       \n"
     "	float4 Nor : NORMAL;      \n"
-    "   float2 uv  : UV;\n        \n"
+    "   float2 uv  : UV;          \n"
     "};                           \n"
 
      //VSからPSに送る情報
@@ -38,6 +38,7 @@ const char* g_hlsl_sause_code =
 	"  float4x4 mat;              \n"//ビューパイプライントランスフォーム用
 	"  float4x4 w_mat;            \n"//法線用のワールドトランスフォーム用
 	"  float4 l_vec;              \n"//平行ライト用ベクトル
+	"  float4 l_pos;              \n"//点ライト用ポジション
 	"};                           \n"
 
 	//頂点シェーダ
@@ -56,15 +57,24 @@ const char* g_hlsl_sause_code =
    "float4 ps(vertexOut IN) :SV_Target                              \n"
    "{                                                               \n"
    " float4 col = IN.col;                                           \n"//頂点のcolor情報を取得
-   " float4 light_vec_sc=(float4)1.0f;                              \n"//平行ライト用の陰影結果を入れる変数
+   " float4 light_vec_sc=(float4)0.0f;                              \n"//平行ライト用の陰影結果を入れる変数
+   " float4 light_pos_sc=(float4)0.0f;                              \n"//点ライト用の陰影結果を入れる変数
    "                                                                \n"
    "if(l_vec.w != 0.0f&&any(IN.nor)==true)                          \n"//l_vec.wが0であれば平行のライト計算はしない
-   "{                                                               \n"
+   "{                                                               \n"//また、法線がない場合も、計算しない
    "  light_vec_sc.rgb*=dot(normalize(IN.nor),normalize(-l_vec));   \n"//法線と-光源向きで内積を求め陰影のRGBに入れる
    "  light_vec_sc=saturate(light_vec_sc);                          \n"//light_vec_scの値を（0～1）までにする
    "}                                                               \n"
    "                                                                \n"
-   "  col=col*light_vec_sc;                                         \n"//色の合成
+   "if(l_pos.w>0.0f&&any(IN.nor)==true)                             \n"//l_pos.wが0以下であれば点ライト計算はしない
+   " {                                                              \n"
+   "   float3 lp_len=l_pos.xyz - IN.pos_c;                          \n"//点光源と頂点の各ピクセルの位置からベクトルを求める
+   "   float  len=lenght(lp_len);                                   \n"//求めたベクトルの長さを求める
+   "   float  w=saturate(len/l_pos.w);                              \n"//ベクトルの長さと出力幅を％で出す
+   "   light_pos_sc.rgb=dot(normalize(IN.nor),normalize(lp_len));   \n"//法線とlp_lenから陰影部を求める
+   "   light_pos_sc.rgb=light_pos_sc.rgb*(float3)1.0-w;             \n"//陰影と光の強さを合成して点光源の陰影とする
+   " }                                                              \n"
+   "  col=col*max(light_pos_sc,light_vec_sc);                       \n"//色の合成(ライトの陰影は値が高い方を出力する）
    "  return col;                                                   \n"//出力
    "}                                                               \n"
 };
@@ -79,6 +89,8 @@ void CRender3D::Init()
 
 	//平行ライト値の初期化
 	memset(m_light_vector, 0x00, sizeof(m_light_vector));
+	//点ライト
+	memset(m_light_pos, 0x00, sizeof(m_light_pos));
 
 	HRESULT hr = S_OK;
 	//hlslファイル読み込み　ブロブ作成　ブロブとはシェーダーの塊みたいなもの
@@ -234,6 +246,8 @@ void CRender3D::Render(CMODEL* modle,float mat[16],float mat_w[16])
 
 			//平行ライトの値を渡す
 			memcpy(data.m_light_vec, m_light_vector, sizeof(m_light_vector));
+			//点ライトの値を渡す
+			memcpy(data.m_light_pos, m_light_pos, sizeof(m_light_pos));
 
 			memcpy_s(pData.pData, pData.RowPitch, (void*)&data, sizeof(CMODEL3D_BUFFER));
 			//コンスタントバッファをシェーダに輸送
