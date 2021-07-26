@@ -2,6 +2,9 @@
 #include "DeviceCreate.h"
 #include "Math3D.h"
 
+float CRender3D::m_light_vector[4];//平行光源（方向）
+float CRender3D::m_light_pos[4];//点光源（位置）
+
 ID3D11VertexShader*   CRender3D::m_pVertexShader;   //バーテックスシェーダー
 ID3D11PixelShader*    CRender3D::m_pPixelShader;    //ピクセルシェーダー
 ID3D11InputLayout*    CRender3D::m_pVertexLayout;   //頂点入力レイアウト
@@ -11,7 +14,7 @@ ID3D11Buffer*         CRender3D::m_pConstantBuffer; //コンスタントバッファ
 const char* g_hlsl_sause_code =
 {
 	//CPUから取得する頂点情報構造体
-	"struct vertexIn           \n"
+	"struct vertexIn              \n"
     "{                            \n"
     "	float4 pos : POSITION;    \n"
     "	float4 col : COLOR;       \n"
@@ -20,35 +23,50 @@ const char* g_hlsl_sause_code =
     "};                           \n"
 
      //VSからPSに送る情報
-    "struct vertexOut             \n"
-    "{                            \n"              
-	"  float4 pos : SV_POSITION;  \n"
-	"  float4 col : COLOR;        \n"
-	"  float2 uv  : UV;           \n"
-	"};                           \n"
+    "struct vertexOut                \n"
+    "{                               \n"              
+	"  float4 pos  : SV_POSITION;    \n"
+	"  float4 col  : COLOR;          \n"
+	"  float2 uv   : UV;             \n"
+	"  float3 nor  : NORMAL;         \n"//ワールド行列×法線
+	"  float3 pos_c: POSITION_COLOR; \n"//ワールド行列×位置
+	"};                              \n"
 
 	//コンスタントバッファ受取先
 	"cbuffer global               \n"
 	"{                            \n"
-	"  float4x4 mat;              \n"
+	"  float4x4 mat;              \n"//ビューパイプライントランスフォーム用
+	"  float4x4 w_mat;            \n"//法線用のワールドトランスフォーム用
+	"  float4 l_vec;              \n"//平行ライト用ベクトル
 	"};                           \n"
 
 	//頂点シェーダ
-   "vertexOut vs(vertexIn IN)               \n"
-   "{                                       \n" 
-	"vertexOut OUT;                         \n"
-	"OUT.pos = mul(IN.pos,transpose(mat));  \n"
-	"OUT.col = IN.col;                      \n"
-	"OUT.uv  = IN.uv;                       \n"
-	"return OUT;                            \n"
-    "}                                      \n"	
+   "vertexOut vs(vertexIn IN)                              \n"
+   "{                                                      \n" 
+	"vertexOut OUT;                                        \n"
+	"OUT.pos   = mul(IN.pos,transpose(mat));               \n"
+	"OUT.col   = IN.col;                                   \n"
+	"OUT.uv    = IN.uv;                                    \n"
+	"OUT.nor   = mul(IN.Nor,(float3x3)transpose(w_mat));   \n"//nor=w_mat[3×3]*法線(x,y,z)   
+	"OUT.pos_c = mul(IN.pos,transpose(w_mat));             \n"//pos=w_mat[4×4]*位置(x,y,z)
+	"return OUT;                                           \n"
+    "}                                                     \n"	
 
 	//ピクセルシェーダ
-   "float4 ps(vertexOut IN) :SV_Target   \n"
-   "{                                    \n"
-   " float4 col = IN.col;                \n"
-   " return col;                         \n"
-   "}                                    \n"
+   "float4 ps(vertexOut IN) :SV_Target                              \n"
+   "{                                                               \n"
+   " float4 col = IN.col;                                           \n"//頂点のcolor情報を取得
+   " float4 light_vec_sc=(float4)1.0f;                              \n"//平行ライト用の陰影結果を入れる変数
+   "                                                                \n"
+   "if(l_vec.w != 0.0f&&any(IN.nor)==true)                          \n"//l_vec.wが0であれば平行のライト計算はしない
+   "{                                                               \n"
+   "  light_vec_sc.rgb*=dot(normalize(IN.nor),normalize(-l_vec));   \n"//法線と-光源向きで内積を求め陰影のRGBに入れる
+   "  light_vec_sc=saturate(light_vec_sc);                          \n"//light_vec_scの値を（0～1）までにする
+   "}                                                               \n"
+   "                                                                \n"
+   "  col=col*light_vec_sc;                                         \n"//色の合成
+   "  return col;                                                   \n"//出力
+   "}                                                               \n"
 };
 
 
@@ -58,6 +76,10 @@ const char* g_hlsl_sause_code =
 
 void CRender3D::Init()
 {
+
+	//平行ライト値の初期化
+	memset(m_light_vector, 0x00, sizeof(m_light_vector));
+
 	HRESULT hr = S_OK;
 	//hlslファイル読み込み　ブロブ作成　ブロブとはシェーダーの塊みたいなもの
 	//XXシェーダーとして特徴を持たない。後で各種シェーダーとなる
@@ -158,7 +180,7 @@ void CRender3D::Delete()
 }
 
 //モデルをレンダリングする
-void CRender3D::Render(CMODEL* modle,float mat[16])
+void CRender3D::Render(CMODEL* modle,float mat[16],float mat_w[16])
 {
 	//頂点レイアウト
 	Dev::GetDeviceContext()->IASetInputLayout(m_pVertexLayout);
@@ -199,6 +221,20 @@ void CRender3D::Render(CMODEL* modle,float mat[16])
 			{
 				memcpy(data.m_mat, mat, sizeof(float) * 16);
 			}
+
+			//法線用のワールド行列を渡す
+			if (mat_w == nullptr)
+			{
+				Math3D::IdentityMatrix(data.m_mat_w);//ない場合は単位行列を渡す
+			}
+			else
+			{
+				memcpy(data.m_mat_w, mat_w, sizeof(float) * 16);
+			}
+
+			//平行ライトの値を渡す
+			memcpy(data.m_light_vec, m_light_vector, sizeof(m_light_vector));
+
 			memcpy_s(pData.pData, pData.RowPitch, (void*)&data, sizeof(CMODEL3D_BUFFER));
 			//コンスタントバッファをシェーダに輸送
 			Dev::GetDeviceContext()->Unmap(m_pConstantBuffer, 0);
@@ -211,4 +247,32 @@ void CRender3D::Render(CMODEL* modle,float mat[16])
 	
 
 	
+}
+
+//平行光源の向きを入れる
+void CRender3D::SetLightVec(float x, float y, float z, bool light_on)
+{
+	//ライトの光源方向
+	m_light_vector[0] = x;
+	m_light_vector[1] = y;
+	m_light_vector[2] = z;
+
+	//light_onでライトの有無を決めるようにする
+	if (light_on == true)
+	{
+		m_light_vector[3] = 1.0f;//ライト有
+	}
+	else
+	{
+		m_light_vector[3] = 0.0f;//ライト無
+	}
+}
+
+//点光源の位置と出力幅を入れる
+void CRender3D::SetLightPos(float x, float y, float z, float max)
+{
+	m_light_pos[0] = x;
+	m_light_pos[1] = y;
+	m_light_pos[2] = z;
+	m_light_pos[3] = max;//光に届く最大距離
 }

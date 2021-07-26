@@ -15,6 +15,8 @@ class CMODEL3D_BUFFER
 {
 public:
 	float m_mat[16];//トランスフォーム用行列
+	float m_mat_w[16];//法線用のワールド行列
+	float m_light_vec[4];//平行ライトの方向
 };
 
 
@@ -67,9 +69,13 @@ public:
 	static void Init();
 	static void Delete();
 
-	static void Render(CMODEL* modle,float mat[16]); //モデルをレンダリングする
+	static void Render(CMODEL* modle,float mat[16],float mat_w[16]); //モデルをレンダリングする
+	static void SetLightVec(float x, float y, float z, bool light_on);//平行光源の向きを入れる
+	static void SetLightPos(float x, float y, float z, float max);//点光源の位置と出力幅を入れる
 
 private:
+	static float m_light_vector[4];//平行光源（方向）
+	static float m_light_pos[4];//点光源（位置）
 	static ID3D11VertexShader* m_pVertexShader;   //バーテックスシェーダー
 	static ID3D11PixelShader*  m_pPixelShader;    //ピクセルシェーダー
 	static ID3D11InputLayout*  m_pVertexLayout;   //頂点入力レイアウト

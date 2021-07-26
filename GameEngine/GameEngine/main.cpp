@@ -107,6 +107,9 @@ unsigned __stdcall GameMainThread(void* p)
         Dev::GetDeviceContext()->OMSetRenderTargets(1, Dev::GetppRTV(), Dev::GetDSV());//レンダリング先設定（カラーバッファ・Zバッファ）
         //ここから3D描画開始
 
+        //平行ライトをONにする
+        Render::SetLightVec(-1.0f, -0.5f, 0.0f, true);
+
         float mat_w[16];//ワールド行列
         float mat_v[16];//ビュー（カメラ）行列
         float mat_p[16];//パースペクティブ行列
@@ -120,7 +123,7 @@ unsigned __stdcall GameMainThread(void* p)
 
         //ビュー（カメラ）行列の作成
         static float r = 0.0f;
-        r += 0.01;
+       // r += 0.01;テストのため一旦カメラ回転させない
         float eye[3]    = { cos(r)*2000.0f,2000.0f,sin(r)*2000.0f };//カメラの位置
         float center[3] = { 0.0f,0.0f,0.0f }; //カメラの注目点
         float up[3]     = { 0.0f,1.0f,0.0f }; //カメラのY軸ベクトル
@@ -132,14 +135,20 @@ unsigned __stdcall GameMainThread(void* p)
         //原点からX方向に2移動
         float pos[3] = { 0.0f,0.0f,0.0f };
         Math3D::IdentityMatrix(mat_w);//行列を初期化
-        Math3D::Translation(mat_w, pos, mat_w);//平行移動X軸２進む行列をmat_wに作成
+        //Math3D::Translation(mat_w, pos, mat_w);//平行移動X軸２進む行列をmat_wに作成(テストのため中止）
+
+        //テストのため一つ目の物体を回転させる
+        static float rr = 0.0f;
+        rr += 0.01f;
+        float f[3] = { 0.0f,1.0f,0.0f };
+        Math3D::Rotate(mat_w, rr, f, mat_w);//回転行列を作成
 
         //三つの行列をmat_WVPに合成
         Math3D::Multiply(mat_w, mat_WVP, mat_WVP);
         Math3D::Multiply(mat_v, mat_WVP, mat_WVP);
         Math3D::Multiply(mat_p, mat_WVP, mat_WVP);
 
-        Render::Render(mod,mat_WVP);//一つ目のモデル描画
+        Render::Render(mod,mat_WVP,mat_w);//一つ目のモデル描画
 
         //原点からX方向に2移動
         float pos_two[3] = { 2.0f,0.0f,0.0f };//1つめの位置を変える
@@ -152,7 +161,7 @@ unsigned __stdcall GameMainThread(void* p)
         Math3D::Multiply(mat_v, mat_WVP, mat_WVP);
         Math3D::Multiply(mat_p, mat_WVP, mat_WVP);
 
-        Render::Render(mod, mat_WVP);//2つ目のモデル描画
+        Render::Render(mod, mat_WVP,mat_w);//2つ目のモデル描画
 
         //2D描画設定
         Dev::GetDeviceContext()->RSSetState(Dev::GetRS());//2D用ラスタライズをセット
