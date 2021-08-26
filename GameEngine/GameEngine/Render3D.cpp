@@ -57,8 +57,8 @@ const char* g_hlsl_sause_code =
    "float4 ps(vertexOut IN) :SV_Target                              \n"
    "{                                                               \n"
    "   float4 col = IN.col;                                           \n"//頂点のcolor情報を取得
-   "   float4 light_vec_sc=(float4)0.0f;                              \n"//平行ライト用の陰影結果を入れる変数
-   "   float4 light_pos_sc=(float4)0.0f;                              \n"//点ライト用の陰影結果を入れる変数
+   "   float4 light_vec_sc=(float4)1.0f;                              \n"//平行ライト用の陰影結果を入れる変数
+   "   float4 light_pos_sc=(float4)1.0f;                              \n"//点ライト用の陰影結果を入れる変数
    "                                                                \n"
    "   if(l_vec.w != 0.0f && any(IN.nor)==true)                          \n"//l_vec.wが0であれば平行のライト計算はしない
    "   {                                                               \n"//また、法線がない場合も、計算しない
@@ -69,7 +69,7 @@ const char* g_hlsl_sause_code =
    "   if(l_pos.w > 0.0f && any(IN.nor)==true)                         \n"//l_pos.wが0以下であれば点ライト計算はしない
    "   {                                                              \n"
    "     float3 lp_len = l_pos.xyz - IN.pos_c;                        \n"//点光源と頂点の各ピクセルの位置からベクトルを求める
-   "     float  len = lenght(lp_len);                                 \n"//求めたベクトルの長さを求める
+   "     float  len = length(lp_len);                                 \n"//求めたベクトルの長さを求める
    "     float  w = saturate(len/l_pos.w);                            \n"//ベクトルの長さと出力幅を％で出す
    "     light_pos_sc.rgb = dot(normalize(IN.nor),normalize(lp_len)); \n"//法線とlp_lenから陰影部を求める
    "     light_pos_sc.rgb = light_pos_sc.rgb*(float3)1.0-w;           \n"//陰影と光の強さを合成して点光源の陰影とする
