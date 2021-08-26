@@ -18,6 +18,8 @@ public:
 	float m_mat_w[16];//法線用のワールド行列
 	float m_light_vec[4];//平行ライトの方向
 	float m_light_pos[4];//点ライトの位置と出力幅
+	float m_ambient[4];//アンビエント
+	float m_diffuse[4];//デフィーズ
 };
 
 
@@ -35,10 +37,10 @@ public:
 class CMATERIAL
 {
 public:
-	float m_diffuse[3];                  //ディユーズ（拡散反射）
-	float m_specular[3];                 //スペキュラ（鏡面反射）
+	float m_diffuse[4];                  //ディユーズ（拡散反射）
+	float m_specular[4];                 //スペキュラ（鏡面反射）
 	float m_specular_power;              //スペキュラパワー
-	float m_ambient[3];                  //アンビエント（環境光）
+	float m_ambient[4];                  //アンビエント（環境光）
 	float m_emissive[4];                 //エミッシブ（放射線（自己発光））
 	ID3D11ShaderResourceView* m_pTexture;//テクスチャ
 };

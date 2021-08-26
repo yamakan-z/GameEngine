@@ -15,22 +15,22 @@ const char* g_hlsl_sause_code =
 {
 	//CPUから取得する頂点情報構造体
 	"struct vertexIn              \n"
-    "{                            \n"
-    "   float4 pos : POSITION;    \n"
-    "   float4 col : COLOR;       \n"
-    "   float4 Nor : NORMAL;      \n"
-    "   float2 uv  : UV;          \n"
-    "};                           \n"
+	"{                            \n"
+	"   float4 pos : POSITION;    \n"
+	"   float4 col : COLOR;       \n"
+	"   float4 Nor : NORMAL;      \n"
+	"   float2 uv  : UV;          \n"
+	"};                           \n"
 
-     //VSからPSに送る情報
-    "struct vertexOut                \n"
-    "{                               \n"              
-	"  float4 pos  : SV_POSITION;    \n"
-	"  float4 col  : COLOR;          \n"
-	"  float2 uv   : UV;             \n"
-	"  float3 nor  : NORMAL;         \n"//ワールド行列×法線
-	"  float3 pos_c: POSITION_COLOR; \n"//ワールド行列×位置
-	"};                              \n"
+	//VSからPSに送る情報
+   "struct vertexOut                \n"
+   "{                               \n"
+   "  float4 pos  : SV_POSITION;    \n"
+   "  float4 col  : COLOR;          \n"
+   "  float2 uv   : UV;             \n"
+   "  float3 nor  : NORMAL;         \n"//ワールド行列×法線
+   "  float3 pos_c: POSITION_COLOR; \n"//ワールド行列×位置
+   "};                              \n"
 
 	//コンスタントバッファ受取先
 	"cbuffer global               \n"
@@ -39,6 +39,8 @@ const char* g_hlsl_sause_code =
 	"  float4x4 w_mat;            \n"//法線用のワールドトランスフォーム用
 	"  float4 l_vec;              \n"//平行ライト用ベクトル
 	"  float4 l_pos;              \n"//点ライト用ポジション
+	"  float4 amb;                \n"//アンビエント
+	"  float4 diff;               \n"//デフィーズ
 	"};                           \n"
 
 	//頂点シェーダ
@@ -54,29 +56,41 @@ const char* g_hlsl_sause_code =
     "}                                                     \n"	
 
 	//ピクセルシェーダ
-   "float4 ps(vertexOut IN) :SV_Target                              \n"
-   "{                                                               \n"
-   "   float4 col = IN.col;                                           \n"//頂点のcolor情報を取得
-   "   float4 light_vec_sc=(float4)1.0f;                              \n"//平行ライト用の陰影結果を入れる変数
-   "   float4 light_pos_sc=(float4)1.0f;                              \n"//点ライト用の陰影結果を入れる変数
-   "                                                                \n"
-   "   if(l_vec.w != 0.0f && any(IN.nor)==true)                          \n"//l_vec.wが0であれば平行のライト計算はしない
+   "float4 ps(vertexOut IN) :SV_Target                                 \n"
+   "{                                                                  \n"
+   "   float4 col = IN.col;                                            \n"//頂点のcolor情報を取得
+   "   float4 light_vec_sc=(float4)1.0f;                               \n"//平行ライト用の陰影結果を入れる変数
+   "   float4 light_pos_sc=(float4)1.0f;                               \n"//点ライト用の陰影結果を入れる変数
+   "                                                                   \n"
+   "   if(l_vec.w != 0.0f && any(IN.nor)==true)                        \n"//l_vec.wが0であれば平行のライト計算はしない
    "   {                                                               \n"//また、法線がない場合も、計算しない
-   "     light_vec_sc.rgb = dot(normalize(IN.nor),normalize(-l_vec));   \n"//法線と-光源向きで内積を求め陰影のRGBに入れる
+   "     light_vec_sc.rgb = dot(normalize(IN.nor),normalize(-l_vec));  \n"//法線と-光源向きで内積を求め陰影のRGBに入れる
    "     light_vec_sc=saturate(light_vec_sc);                          \n"//light_vec_scの値を（0～1）までにする
    "   }                                                               \n"
    "                                                                   \n"
    "   if(l_pos.w > 0.0f && any(IN.nor)==true)                         \n"//l_pos.wが0以下であれば点ライト計算はしない
-   "   {                                                              \n"
-   "     float3 lp_len = l_pos.xyz - IN.pos_c;                        \n"//点光源と頂点の各ピクセルの位置からベクトルを求める
-   "     float  len = length(lp_len);                                 \n"//求めたベクトルの長さを求める
-   "     float  w = saturate(len/l_pos.w);                            \n"//ベクトルの長さと出力幅を％で出す
-   "     light_pos_sc.rgb = dot(normalize(IN.nor),normalize(lp_len)); \n"//法線とlp_lenから陰影部を求める
-   "     light_pos_sc.rgb = light_pos_sc.rgb*(float3)1.0-w;           \n"//陰影と光の強さを合成して点光源の陰影とする
-   "   }                                                              \n"
-   "  col=col*max(light_pos_sc,light_vec_sc);                         \n"//色の合成(ライトの陰影は値が高い方を出力する）
-   "  return col;                                                     \n"//出力
-   "}                                                                 \n"
+   "   {                                                               \n"
+   "     float3 lp_len = l_pos.xyz - IN.pos_c;                         \n"//点光源と頂点の各ピクセルの位置からベクトルを求める
+   "     float  len = length(lp_len);                                  \n"//求めたベクトルの長さを求める
+   "     float  w = saturate(len/l_pos.w);                             \n"//ベクトルの長さと出力幅を％で出す
+   "     light_pos_sc.rgb = dot(normalize(IN.nor),normalize(lp_len));  \n"//法線とlp_lenから陰影部を求める
+   "     light_pos_sc.rgb = light_pos_sc.rgb*(float3)1.0-w;            \n"//陰影と光の強さを合成して点光源の陰影とする
+   "   }                                                               \n"
+   "  float4 d=(float4)1.0f;                                           \n"
+   "  if(any(diff)==true)                                              \n"//ディフィーズ計算有無
+   "  {                                                                \n"
+   "    d=max(light_pos_sc,light_vec_sc)*diff;                         \n"//点・ベクトル光源の中で明るい陰影と
+   "  }                                                                \n"//ディフィーズ色を合成する
+   "                                                                   \n"
+   "  float4 a=(float4)0.0f;                                           \n"
+   "  if(any(amb)==true)                                               \n"//アンビエントの有無
+   "  {                                                                \n"
+   "    a=amb;                                                         \n"//アンビエント値を代入
+   "  }                                                                \n"
+   "  col=col*d+a;                                                     \n"//色=ポリゴン色*ディフィーズ色+アンビエント色
+   "  col=saturate(col);                                               \n"//求めた色を0.0～1.0を超えないようにする
+   "  return col;                                                      \n"//最終的な出力
+   "}                                                                  \n"
 };
 
 
@@ -248,6 +262,11 @@ void CRender3D::Render(CMODEL* modle,float mat[16],float mat_w[16])
 			memcpy(data.m_light_vec, m_light_vector, sizeof(m_light_vector));
 			//点ライトの値を渡す
 			memcpy(data.m_light_pos, m_light_pos, sizeof(m_light_pos));
+
+			//材質　アンビエントを渡す
+			memcpy(data.m_ambient, modle->m_Material[i].m_ambient, sizeof(data.m_ambient));
+			//材質　デフィーズを渡す
+			memcpy(data.m_diffuse, modle->m_Material[i].m_diffuse, sizeof(data.m_diffuse));
 
 			memcpy_s(pData.pData, pData.RowPitch, (void*)&data, sizeof(CMODEL3D_BUFFER));
 			//コンスタントバッファをシェーダに輸送
