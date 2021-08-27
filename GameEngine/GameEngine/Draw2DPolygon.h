@@ -48,6 +48,9 @@ public:
 	static void    DeletePolygonRender();  //ポリゴン表示環境の破棄
 
 	static void LoadImage(int id, const wchar_t* img_name); //イメージ情報読み込み
+	static ID3D11ShaderResourceView* LoadImage(const wchar_t* img_name);//イメージ情報読み込み
+
+	static ID3D11SamplerState** GetSamplerState() { return &m_pSampleLinear; }//テクスチャサンプラ
 
 private:
 	//GPUで扱う用

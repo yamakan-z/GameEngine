@@ -22,6 +22,24 @@ ID3D11ShaderResourceView* Draw::m_pTexture[32];       //テクスチャーリソース
 float Draw::m_width[32];   //テクスチャの横幅
 float Draw::m_height[32];  //テクスチャの縦幅
 
+//3Dモデル用のイメージ情報読み込み
+ID3D11ShaderResourceView* CDraw2DPolygon::LoadImage(const wchar_t* img_name)
+{
+    HRESULT hr = S_OK;
+    ID3D11ShaderResourceView* view;
+    //設定を元にテクスチャ作成
+    hr = DirectX::CreateWICTextureFromFile(Dev::GetDevice(), Dev::GetDeviceContext(), img_name, nullptr, &view, 0U);
+
+    if (FAILED(hr))
+    {
+        MessageBox(0, L"テクスチャの読み込みが出来ませんでした。", NULL, MB_OK);
+        return nullptr;
+    }
+
+    return view;
+}
+
+
 //イメージ情報読み込み
 void CDraw2DPolygon::LoadImage(int id, const wchar_t* img_name)
 {

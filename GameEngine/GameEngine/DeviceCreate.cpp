@@ -262,13 +262,13 @@ HRESULT APIENTRY CDeviceCreate::InitDevice(HWND hWnd, int w, int h)
     D3D11_BLEND_DESC BlendDesc = { FALSE,FALSE };
     for (int i = 0;i < 8;i++)
     {
-        BlendDesc.RenderTarget[i].BlendEnable = TRUE;
-        BlendDesc.RenderTarget[i].SrcBlend = D3D11_BLEND_SRC_ALPHA;
-        BlendDesc.RenderTarget[i].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
-        BlendDesc.RenderTarget[i].BlendOp = D3D11_BLEND_OP_ADD;
-        BlendDesc.RenderTarget[i].SrcBlendAlpha = D3D11_BLEND_ONE;
-        BlendDesc.RenderTarget[i].DestBlendAlpha = D3D11_BLEND_ZERO;
-        BlendDesc.RenderTarget[i].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+        BlendDesc.RenderTarget[i].BlendEnable           = TRUE;
+        BlendDesc.RenderTarget[i].SrcBlend              = D3D11_BLEND_SRC_ALPHA;
+        BlendDesc.RenderTarget[i].DestBlend             = D3D11_BLEND_INV_SRC_ALPHA;
+        BlendDesc.RenderTarget[i].BlendOp               = D3D11_BLEND_OP_ADD;
+        BlendDesc.RenderTarget[i].SrcBlendAlpha         = D3D11_BLEND_ONE;
+        BlendDesc.RenderTarget[i].DestBlendAlpha        = D3D11_BLEND_ZERO;
+        BlendDesc.RenderTarget[i].BlendOpAlpha          = D3D11_BLEND_OP_ADD;
         BlendDesc.RenderTarget[i].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;
     }
     m_pDevice->CreateBlendState(&BlendDesc, &m_pBlendState);

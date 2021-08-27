@@ -1,4 +1,5 @@
 #include "Render3D.h"
+#include "Draw2DPolygon.h"
 #include "DeviceCreate.h"
 #include "Math3D.h"
 
@@ -41,7 +42,15 @@ const char* g_hlsl_sause_code =
 	"  float4 l_pos;              \n"//点ライト用ポジション
 	"  float4 amb;                \n"//アンビエント
 	"  float4 diff;               \n"//デフィーズ
+	"  float4 emi;                \n"//エミッシブ
+	"  float4 sp;                 \n"//スペキュラ
+	"  float4 sp_p;               \n"//スペキュラパワー
+	"  float4 eye;                \n"//視野方向
 	"};                           \n"
+
+	//テクスチャ情報
+	"Texture2D      txDiffuse  : register( t0 );\n"//テクスチャのグラフィック
+	"SamplerState   samLinear  : register( s0 );\n"//テクスチャサンプラ
 
 	//頂点シェーダ
    "vertexOut vs(vertexIn IN)                              \n"
@@ -87,8 +96,59 @@ const char* g_hlsl_sause_code =
    "  {                                                                \n"
    "    a=amb;                                                         \n"//アンビエント値を代入
    "  }                                                                \n"
-   "  col=col*d+a;                                                     \n"//色=ポリゴン色*ディフィーズ色+アンビエント色
+   "                                                                   \n"
+   "  float4 vec_sp=(float4)0.0f;vec_sp.a=1.0f;                        \n"//スペキュラ平行光源の結果を入れる変数
+   "  float4 pos_sp=(float4)0.0f;pos_sp.a=1.0f;                        \n"//スペキュラ点光源の結果を入れる変数
+   "  if(any(sp)==true&&any(eye)==true)                                \n"//スペキュラパワー値で計算有無を行う
+   "  {                                                                \n"
+   "    float3 e=normalize(eye.rgb);                                   \n"//視線方向ベクトルの正規化
+   "    float3 n=normalize(IN.nor.rgb);                                \n"//法線の正規化
+   "    float3 l=-normalize(l_vec.rgb);                                \n"//平行ライト向きを逆にしての正規化
+   "    if(l_vec.w != 0.0f && any(IN.nor) == true)                     \n"//l_vec.wが0であれば平行ライト計算はしない
+   "    {                                                              \n"//また、法線がない場合も計算しない
+   "      if(dot(n,l)>=0.0f)                                           \n"//光の向きと面の向きが反対かどうかを調べる
+   "      {                                                            \n"
+   "        float3 rv=normalize(n*dot(n,l)*2.0-l);                     \n"//反射ベクトルを求める
+   "        vec_sp.rgb=pow(max(0,dot(rv,e)),sp_p.x);                   \n"//スペキュラの輝度を算出
+   "        float3 no=(float3)((sp_p.x+2)/(2*3.14));                   \n"//輝度に正規化係数を乗算
+   "        vec_sp.rgb=sp.rgb*saturate(no*vec_sp.rgb);                 \n"//正規化係数・スペキュラ・色を乗算して求める
+   "      }                                                            \n"
+   "    }                                                              \n"
+   "                                                                   \n"
+   "    if(l_pos.w>0.0f && any(IN.nor)==true)                          \n"//l_pos.wが0以下であれば点ライト計算はしない
+   "    {                                                              \n"
+   "      float3 lp_len=IN.pos_c-l_pos.xyz;                            \n"//点光源と頂点の各ピクセルの位置からベクトルを求める
+   "      float  len=length(lp_len);                                   \n"//求めたベクトルの長さを求める
+   "      float3 nor_lp=-normalize(lp_len);                            \n"//求めたベクトルの正規化
+   "      float  w=saturate(len/l_pos.w);                              \n"//ベクトルの長さと出力幅を％で出す
+   "      if(dot(n,nor_lp)>=0.0f)                                      \n"//点光源の向きと面の向きが反対かどうかを調べる
+   "      {                                                            \n"
+   "        float3 rv=normalize(n*dot(n,nor_lp)*2.0-nor_lp);           \n"//点光源に対して反射ベクトルを求める
+   "        pos_sp.rgb=pow(max(0,dot(rv,e)),sp_p.x);                   \n"//スペキュラの輝度を算出
+   "        float3 no=(float3)((sp_p.x+2) / (2*3.14));                 \n"//輝度に正規化係数を乗算
+   "        pos_sp.rgb=saturate(no*pos_sp.rgb)*((float3)1.0-w);        \n"//スペキュラと光の強さを点対象の距離で減衰させる
+   "      }                                                            \n"
+   "    }                                                              \n"
+   "  }                                                                \n"
+   "                                                                   \n"
+   "  col=col*d+vec_sp+pos_sp+a;                                       \n"//色=ポリゴン色*ディフィーズ色+スペキュラ+アンビエント色
    "  col=saturate(col);                                               \n"//求めた色を0.0～1.0を超えないようにする
+   "                                                                   \n"
+   "  if(any(emi)==true)                                               \n"//エミッシブの有無
+   "  {                                                                \n"
+   "    col=max(col,emi);                                              \n"//求めた色とエミッシブ（自己発光）、明るい色を最終的な色とする
+   "  }                                                                \n"
+   "                                                                   \n"
+   "  float4 tex=(float4)0.0f;                                         \n"//テクスチャ
+   "  tex=txDiffuse.Sample(samLinear,IN.uv);                            \n"//UVからテクスチャの色の値を取得
+   "  float x,y;                                                       \n"//テクスチャの大きさを入れる変数
+   "  txDiffuse.GetDimensions(x,y);                                    \n"//テクスチャの大きさを取得
+   "  if(x != 0.0f && y != 0.0f)                                       \n"//大きさが0の時、テクスチャは無いと判断する
+   "     col *= tex;                                                   \n"//テクスチャの色を合成する
+   "                                                                   \n"
+   "  if(col.a<=0.0f)                                                  \n"//完全透過であれば、
+   "     discard;                                                      \n"//そのピクセルを描画しない
+   "                                                                   \n"
    "  return col;                                                      \n"//最終的な出力
    "}                                                                  \n"
 };
@@ -139,7 +199,7 @@ void CRender3D::Init()
 	{
 		{"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT   ,0,0, D3D11_INPUT_PER_VERTEX_DATA,0},
 		{"NORMAL",  0,DXGI_FORMAT_R32G32B32_FLOAT,   0,12,D3D11_INPUT_PER_VERTEX_DATA,0},
-		{"UV"   ,   0,DXGI_FORMAT_R32G32_FLOAT,      0,28,D3D11_INPUT_PER_VERTEX_DATA,0},
+		{"UV"   ,   0,DXGI_FORMAT_R32G32_FLOAT,      0,24,D3D11_INPUT_PER_VERTEX_DATA,0},
 		{"COLOR",   0,DXGI_FORMAT_R32G32B32A32_FLOAT,0,32,D3D11_INPUT_PER_VERTEX_DATA,0},
 	};
 	UINT numElements = sizeof(layout) / sizeof(layout[0]);
@@ -206,7 +266,7 @@ void CRender3D::Delete()
 }
 
 //モデルをレンダリングする
-void CRender3D::Render(CMODEL* modle,float mat[16],float mat_w[16])
+void CRender3D::Render(CMODEL* modle,float mat[16],float mat_w[16],float v_eye[3])
 {
 	//頂点レイアウト
 	Dev::GetDeviceContext()->IASetInputLayout(m_pVertexLayout);
@@ -258,6 +318,19 @@ void CRender3D::Render(CMODEL* modle,float mat[16],float mat_w[16])
 				memcpy(data.m_mat_w, mat_w, sizeof(float) * 16);
 			}
 
+			//視野方向ベクトルを渡す
+			if (v_eye == nullptr)
+			{
+				memset(data.m_eye, 0x00, sizeof(data.m_eye));
+			}
+			else
+			{
+				data.m_eye[0] = v_eye[0];
+				data.m_eye[1] = v_eye[1];
+				data.m_eye[2] = v_eye[2];
+				data.m_eye[3] = 1.0f;
+			}
+
 			//平行ライトの値を渡す
 			memcpy(data.m_light_vec, m_light_vector, sizeof(m_light_vector));
 			//点ライトの値を渡す
@@ -267,11 +340,24 @@ void CRender3D::Render(CMODEL* modle,float mat[16],float mat_w[16])
 			memcpy(data.m_ambient, modle->m_Material[i].m_ambient, sizeof(data.m_ambient));
 			//材質　デフィーズを渡す
 			memcpy(data.m_diffuse, modle->m_Material[i].m_diffuse, sizeof(data.m_diffuse));
+			//材質　エミッシブを渡す
+			memcpy(data.m_emissive, modle->m_Material[i].m_emissive, sizeof(data.m_emissive));
+			//材質　スペキュラを渡す
+			memcpy(data.m_specular, modle->m_Material[i].m_specular, sizeof(data.m_specular));
+			for (int j = 0; j < 4; j++)
+			{
+				data.m_specular_power[j] = modle->m_Material[i].m_specular_power;
+			}
 
 			memcpy_s(pData.pData, pData.RowPitch, (void*)&data, sizeof(CMODEL3D_BUFFER));
 			//コンスタントバッファをシェーダに輸送
 			Dev::GetDeviceContext()->Unmap(m_pConstantBuffer, 0);
 		}
+
+		//テクスチャーサンプラを登録
+		Dev::GetDeviceContext()->PSSetSamplers(0, 1, Draw::GetSamplerState());
+		//テクスチャを登録
+		Dev::GetDeviceContext()->PSSetShaderResources(0, 1, &modle->m_Material[i].m_pTexture);
 
 		//登録した情報を元にポリゴン描画
 		Dev::GetDeviceContext()->DrawIndexed(modle->m_pindex_size[i] * 3, 0, 0);

@@ -1,6 +1,6 @@
 #include "DeviceCreate.h"
 #include "Render3D.h"
-
+#include "Draw2DPolygon.h"
 #include<stdio.h>
 
 CMODEL::~CMODEL()
@@ -185,18 +185,46 @@ void CMODEL::LoadCmoModel(const wchar_t* name)
         fscanf_s(fp, "%s", str, 256);
         sscanf_s(str, " E:%f,%f,%f,%f",
             &m_Material[i].m_emissive[0], &m_Material[i].m_emissive[1], &m_Material[i].m_emissive[2], &m_Material[i].m_emissive[3]);
-        //Texture取得予定
+        //Texture取得
+        m_Material[i].m_pTexture = nullptr;
         for (int i = 0; i < 15; i++)
         {
             //テクスチャがあるかどうかを判断 Texture:
             fscanf_s(fp, "%s", str, 256);
             if (strcmp(str, "}") == 0)//文字列に"{"でテクスチャ有無判断
             {
-                m_Material[i].m_pTexture = nullptr;
                 break;
             }
-            //ここでテクスチャを読み込む予定
-            m_Material[i].m_pTexture = nullptr;
+            //フルパスからファイル名を取り出す
+            char* p = str;//文字列操作用
+            char* p_str = str;
+            if (strstr(p, "__") != nullptr)
+            {
+                MessageBox(0, L"テクスチャ名にアンダーバーが含まれているため中止", NULL, MB_OK);
+                return;
+            }
+
+            //アンダーバーない場所まで移動
+            do
+            {
+                p_str = strstr(p, "_");//文字列の中にあるアンダーバーのあるアドレス先を取得
+                if (p_str == nullptr)  //文字列にアンダーバーがなければファイル名の場所
+                    break;
+                p = p_str + 1;//アンダーバーの位置に移動
+            } while (1);
+
+            int len;                       //識別コードまでの長さ
+            char file_name[128] = { "\0" };//ファイル名を入れる配列
+            len = strcspn(p, ".");         //文字列の.の位置を取得
+
+            strncpy_s(file_name, p, len + 4);
+            file_name[len + 5] = '\0';//取得したファイル名の末端に\0を付ける
+
+            //ここでテクスチャを読み込む
+            wchar_t file_name_w[128];//ユニコード用文字列を入れる配列
+            size_t ret;
+            mbstowcs_s(&ret, file_name_w, 128, file_name, strlen(file_name) + 1);//マルチバイト文字をユニコードに変換
+            m_Material[i].m_pTexture = Draw::LoadImage(file_name_w);//テクスチャ作成
         }
     }
 

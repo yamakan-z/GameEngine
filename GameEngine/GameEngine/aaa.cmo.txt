@@ -9,7 +9,8 @@ material_name:Material;
  D:0.800000,0.092831,0.490850,1.000000;
  S:0.200000,0.023208,0.122713,1.000000;
  SP:36.000000;
- E:0.000000,0.000000,0.000000,1.000000;
+ E:1.000000,0.000000,0.000000,1.000000;
+Texture:_Users_81909_Desktop_GE_GameEngine_GameEngine_CGSDs.png.dds;
 }
 material_name:1;
 {

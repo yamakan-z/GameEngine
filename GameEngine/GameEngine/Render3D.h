@@ -20,6 +20,10 @@ public:
 	float m_light_pos[4];//点ライトの位置と出力幅
 	float m_ambient[4];//アンビエント
 	float m_diffuse[4];//デフィーズ
+	float m_emissive[4];//エミッシブ
+	float m_specular[4];//スペキュラ
+	float m_specular_power[4];//スペキュラパワー
+	float m_eye[4];//視野方向
 };
 
 
@@ -72,7 +76,7 @@ public:
 	static void Init();
 	static void Delete();
 
-	static void Render(CMODEL* modle,float mat[16],float mat_w[16]); //モデルをレンダリングする
+	static void Render(CMODEL* modle,float mat[16],float mat_w[16],float v_eye[3]); //モデルをレンダリングする
 	static void SetLightVec(float x, float y, float z, bool light_on);//平行光源の向きを入れる
 	static void SetLightPos(float x, float y, float z, float max);//点光源の位置と出力幅を入れる
 
