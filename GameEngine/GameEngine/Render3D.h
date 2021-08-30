@@ -37,6 +37,30 @@ public:
 	float m_color[4];   //R-G-B-A:色
 };
 
+//スキンモデル用の頂点レイアウトクラス
+class CPOINT3D_SKIN_LAYOUT :public CPOINT3D_LAYOUT
+{
+public:
+	int   m_bone_index[4];    //この頂点に影響を与える行列ID
+	float m_bone_weight[4];   //影響を与える行列の重み（影響度）
+};
+
+//ボーンクラス
+class BONE
+{
+public:
+	char  m_name[128];          //ボーン名
+	float m_bind_pos[16];       //ボーン座標変換行列
+	float m_inv_bind_pos[16];   //逆ボーン座標変換（原点に移動する行列）
+	float m_local_transform[16];//ローカル変換行列
+	BONE* m_p_bone_next[16];    //接続用ポインタ（最大16つボーンに接続可能）
+	//コンストラクタ
+	BONE()
+	{
+		memset(this, 0x00, sizeof(BONE));
+	}
+};
+
 //マテリアルクラス(材質情報)
 class CMATERIAL
 {
@@ -47,6 +71,21 @@ public:
 	float m_ambient[4];                  //アンビエント（環境光）
 	float m_emissive[4];                 //エミッシブ（放射線（自己発光））
 	ID3D11ShaderResourceView* m_pTexture;//テクスチャ
+
+	//コンストラクタ
+	CMATERIAL()
+	{
+		memset(this, 0x00, sizeof(CMATERIAL));
+		m_pTexture->Release();
+	}
+	//デストラクタ
+	~CMATERIAL()
+	{
+		if (m_pTexture != nullptr)
+		{
+			m_pTexture->Release();
+		}
+	}
 };
 
 //モデルクラス
@@ -65,6 +104,16 @@ public:
 	void CreateSampleTriangularpyramid();//サンプル用の三角錐を作成
 	//CMOファイル読み込み
 	void LoadCmoModel(const wchar_t* name);
+};
+
+//スキンモデルクラス
+class C_SKIN_MODEL :public CMODEL
+{
+public:
+	BONE m_bone[128];//ボーン情報（最大ボーン数128）
+	int m_bone_max;  //使用するボーンの数
+	void LoadCmoModel(const wchar_t* name);//スキンモデルのcmoファイル読み込み
+	void CreateSampleTriangularpyramid() {};//継承先の関数を実行させないダミー関数
 };
 
 //3Dレンダリングクラス

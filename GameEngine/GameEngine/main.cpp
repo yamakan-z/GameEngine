@@ -52,6 +52,7 @@
 //グローバル変数------
 atomic<bool>g_ls_game_end = false; //スレッド用ゲーム終了フラグ
 CMODEL* mod;                       //モデル情報を持つポインタ
+C_SKIN_MODEL* skin_mod;            //スキンモデル情報を持つポインタ
 
 //プロトタイプ変数
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);//ウィンドウプロジージャー
@@ -255,6 +256,10 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
     mod->LoadCmoModel(L"aaa.cmo.txt");
     //mod->CreateSampleTriangularpyramid();
 
+    //3Dスキンモデル読み込み
+    skin_mod = new C_SKIN_MODEL();
+    skin_mod->LoadCmoModel(L"ani.cmo.txt");
+
     thread* thread_main = new thread(GameMainThread, nullptr);//ゲームメインスレッド開始
     //メッセージループ
     do
@@ -271,6 +276,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
 
     //3Dモデル破棄
     delete mod;
+    //delete skin_mod;
 
     //ゲームシステム破棄
 
