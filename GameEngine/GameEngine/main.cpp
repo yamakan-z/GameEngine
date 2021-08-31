@@ -276,7 +276,7 @@ int APIENTRY wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPTSTR szCmd
 
     //3Dモデル破棄
     delete mod;
-    //delete skin_mod;
+    delete skin_mod;
 
     //ゲームシステム破棄
 

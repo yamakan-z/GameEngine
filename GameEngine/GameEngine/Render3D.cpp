@@ -11,6 +11,11 @@ ID3D11PixelShader*    CRender3D::m_pPixelShader;    //ピクセルシェーダー
 ID3D11InputLayout*    CRender3D::m_pVertexLayout;   //頂点入力レイアウト
 ID3D11Buffer*         CRender3D::m_pConstantBuffer; //コンスタントバッファ
 
+ID3D11VertexShader*   CRender3D::m_pVertexShaderSkin;   //スキン用バーテックスシェーダー
+ID3D11InputLayout*    CRender3D::m_pVertexLayoutSkin;   //スキン用頂点入力レイアウト
+ID3D11Buffer*         CRender3D::m_pConstantBufferSkin; //スキン用コンスタントバッファ
+ 
+
 //HLSLソースコード（メモリ内登録）
 const char* g_hlsl_sause_code =
 {
@@ -23,6 +28,17 @@ const char* g_hlsl_sause_code =
 	"   float2 uv  : UV;          \n"
 	"};                           \n"
 
+	//CPUから取得するスキン用頂点情報構造体
+	"struct vertex_skin_In          \n"
+	"{                              \n"
+	"  float4 pos : POSITION;       \n"
+	"  float4 col : COLOR;          \n"
+	"  float4 Nor : NORMAL;         \n"
+	"  float2 uv  : UV;             \n"
+	"  int4   bi  : BI;             \n"
+	"  float4 we  : WE;             \n"
+	"};                             \n"
+
 	//VSからPSに送る情報
    "struct vertexOut                \n"
    "{                               \n"
@@ -34,19 +50,27 @@ const char* g_hlsl_sause_code =
    "};                              \n"
 
 	//コンスタントバッファ受取先
-	"cbuffer global               \n"
-	"{                            \n"
-	"  float4x4 mat;              \n"//ビューパイプライントランスフォーム用
-	"  float4x4 w_mat;            \n"//法線用のワールドトランスフォーム用
-	"  float4 l_vec;              \n"//平行ライト用ベクトル
-	"  float4 l_pos;              \n"//点ライト用ポジション
-	"  float4 amb;                \n"//アンビエント
-	"  float4 diff;               \n"//デフィーズ
-	"  float4 emi;                \n"//エミッシブ
-	"  float4 sp;                 \n"//スペキュラ
-	"  float4 sp_p;               \n"//スペキュラパワー
-	"  float4 eye;                \n"//視野方向
-	"};                           \n"
+	"cbuffer global  :  register( b0 ) \n"
+	"{                                 \n"
+	"  float4x4 mat;                   \n"//ビューパイプライントランスフォーム用
+	"  float4x4 w_mat;                 \n"//法線用のワールドトランスフォーム用
+	"  float4 l_vec;                   \n"//平行ライト用ベクトル
+	"  float4 l_pos;                   \n"//点ライト用ポジション
+	"  float4 amb;                     \n"//アンビエント
+	"  float4 diff;                    \n"//デフィーズ
+	"  float4 emi;                     \n"//エミッシブ
+	"  float4 sp;                      \n"//スペキュラ
+	"  float4 sp_p;                    \n"//スペキュラパワー
+	"  float4 eye;                     \n"//視野方向
+	"};                                \n"
+
+	//ボーン用コンスタントバッファ受取先
+	"cbuffer global_bone : register( b1 )  \n"
+	"{                                     \n"
+	"  float4x4 b_mat[128];                \n"//ボーン行列
+	"};                                    \n"
+
+
 
 	//テクスチャ情報
 	"Texture2D      txDiffuse  : register( t0 );\n"//テクスチャのグラフィック
@@ -63,6 +87,18 @@ const char* g_hlsl_sause_code =
 	"OUT.pos_c = mul(IN.pos,transpose(w_mat));             \n"//pos=w_mat[4×4]*位置(x,y,z)
 	"return OUT;                                           \n"
     "}                                                     \n"	
+
+	//頂点スキン用シェーダ
+   "vertexOut vs_skin(vertex_skin_In IN)                   \n"
+   "{                                                      \n"
+   " vertexOut OUT;                                        \n"
+   " OUT.pos   = mul(IN.pos,transpose(mat));               \n"
+   " OUT.col   = IN.col;                                   \n"
+   " OUT.uv    = IN.uv;                                    \n"
+   " OUT.nor   = mul(IN.Nor,(float3x3)transpose(w_mat));   \n"//nor=w_mat[3×3]*法線(x,y,z)   
+   " OUT.pos_c = mul(IN.pos,transpose(w_mat));             \n"//pos=w_mat[4×4]*位置(x,y,z)
+   " return OUT;                                           \n"
+   "}                                                      \n"
 
 	//ピクセルシェーダ
    "float4 ps(vertexOut IN) :SV_Target                                 \n"
@@ -171,6 +207,32 @@ void CRender3D::Init()
 	//XXシェーダーとして特徴を持たない。後で各種シェーダーとなる
 	ID3DBlob* pCompiledShader = NULL;
 	ID3DBlob* pErrors = NULL;
+
+	//スキンモデル用----------------
+	//メモリ内のHLSLの vs_skin関数部分をコンパイル
+	hr = D3DCompile(g_hlsl_sause_code, strlen(g_hlsl_sause_code), 0, 0, D3D_COMPILE_STANDARD_FILE_INCLUDE,
+		"vs_skin", "vs_4_0", 0, 0, &pCompiledShader, &pErrors);
+
+	if (FAILED(hr))
+	{
+		//エラーがある場合、ｃがデバッグ情報を持つ
+		char* c = (char*)pErrors->GetBufferPointer();
+		MessageBox(0, L"3Dhlsl読み込み失敗1", NULL, MB_OK);
+		SAFE_RELEASE(pErrors);
+		return;
+	}
+
+	//コンパイルしたバーテックスシェーダーを元にインターフェースを作成
+	hr = Dev::GetDevice()->CreateVertexShader(pCompiledShader->GetBufferPointer(), pCompiledShader->GetBufferSize(),
+		NULL, &m_pVertexShaderSkin);
+	if (FAILED(hr))
+	{
+		SAFE_RELEASE(pCompiledShader);
+		MessageBox(0, L"バーテックスシェーダースキン用作成失敗", NULL, MB_OK);
+		return;
+	}
+
+	//-------------------------------
 
 	//メモリ内のHLSLのvs関数部分のコンパイル
 	hr = D3DCompile(g_hlsl_sause_code, strlen(g_hlsl_sause_code), 0, 0, D3D_COMPILE_STANDARD_FILE_INCLUDE,

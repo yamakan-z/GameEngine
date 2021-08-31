@@ -26,6 +26,12 @@ public:
 	float m_eye[4];//視野方向
 };
 
+//コンスタントバッファ　ボーン用
+class CMODEL_BONE_BUFFER
+{
+public:
+	float m_mat[128][16];//4×4の行列をモデルが持つ
+};                       //最大数の128個を輸送する
 
 //頂点レイアウトクラス（頂点が持つ情報）
 class CPOINT3D_LAYOUT
@@ -110,8 +116,8 @@ public:
 class C_SKIN_MODEL :public CMODEL
 {
 public:
-	BONE m_bone[128];//ボーン情報（最大ボーン数128）
-	int m_bone_max;  //使用するボーンの数
+	BONE m_bone[128]; //ボーン情報（最大ボーン数128）
+	int  m_bone_max;  //使用するボーンの数
 	void LoadCmoModel(const wchar_t* name);//スキンモデルのcmoファイル読み込み
 	void CreateSampleTriangularpyramid() {};//継承先の関数を実行させないダミー関数
 };
@@ -136,5 +142,9 @@ private:
 	static ID3D11PixelShader*  m_pPixelShader;    //ピクセルシェーダー
 	static ID3D11InputLayout*  m_pVertexLayout;   //頂点入力レイアウト
 	static ID3D11Buffer*       m_pConstantBuffer; //コンスタントバッファ
+
+	static ID3D11VertexShader* m_pVertexShaderSkin;   //スキン用バーテックスシェーダー
+	static ID3D11InputLayout*  m_pVertexLayoutSkin;   //スキン用頂点入力レイアウト
+	static ID3D11Buffer*       m_pConstantBufferSkin; //スキン用コンスタントバッファ
 
 }Render;

@@ -303,4 +303,67 @@ void C_SKIN_MODEL::LoadCmoModel(const wchar_t* name)
     //ボーン情報の取得
     fscanf_s(fp, "%s", str, 256);
     sscanf_s(str, "bone_count:%d;", &m_bone_max);//ボーンの最大取得数
+
+    for (int i = 0; i < m_bone_max; i++)
+    {
+        fscanf_s(fp, "%s", str, 256);
+        sscanf_s(str, "bone_name:%s;", m_bone[i].m_name, 128);//ボーン名取得
+        m_bone[i].m_name[strlen(m_bone[i].m_name) - 1] = '\0';//末端の';'を取得
+        fscanf_s(fp, "%s", str, 256);
+        fscanf_s(fp, "%s", str, 256);
+        int index = -1;
+        sscanf_s(str, "ParentIndex:%d;", &index);//ボーンの接続元情報取得
+        if (index == -1)
+        {
+            ;//このボーンは始祖のため何もしない
+        }
+        else
+        {
+            //接続元のボーンアクセス用ポインタから空いてるポインタを探す
+            for (int j = 0; j < 16; j++)
+            {
+                //空いてるポインタからこのボーンにアクセス
+                if (m_bone[index].m_p_bone_next[j] == nullptr)
+                {
+                    m_bone[index].m_p_bone_next[j] = &m_bone[i];
+                    break;
+                }
+            }
+        }
+        fscanf_s(fp, "%s", str, 256);
+
+        //各行列情報取得
+        fscanf_s(fp, "%s", str, 256);
+        //BindPos情報取得
+        float* p = m_bone[i].m_bind_pos;//受けとり名が長いので代わりにｐから受けとる
+        sscanf_s(str, "%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,",
+            &p[ 0], &p[ 1], &p[ 2], &p[ 3],
+            &p[ 4], &p[ 5], &p[ 6], &p[ 7],
+            &p[ 8], &p[ 9], &p[10], &p[11],
+            &p[12], &p[13], &p[14], &p[15]);
+        fscanf_s(fp, "%s", str, 256);
+
+        fscanf_s(fp, "%s", str, 256);
+        fscanf_s(fp, "%s", str, 256);
+        //InvBindPos情報取得
+        p = m_bone[i].m_inv_bind_pos;
+        sscanf_s(str, "%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,",
+            &p[ 0], &p[ 1], &p[ 2], &p[ 3],
+            &p[ 4], &p[ 5], &p[ 6], &p[ 7],
+            &p[ 8], &p[ 9], &p[10], &p[11],
+            &p[12], &p[13], &p[14], &p[15]);
+        fscanf_s(fp, "%s", str, 256);
+
+        fscanf_s(fp, "%s", str, 256);
+        fscanf_s(fp, "%s", str, 256);
+        //LocalTransform情報取得
+        p = m_bone[i].m_local_transform;
+        sscanf_s(str, "%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,%f,",
+            &p[ 0], &p[ 1], &p[ 2], &p[ 3],
+            &p[ 4], &p[ 5], &p[ 6], &p[ 7],
+            &p[ 8], &p[ 9], &p[10], &p[11],
+            &p[12], &p[13], &p[14], &p[15]);
+        fscanf_s(fp, "%s", str, 256);
+        fscanf_s(fp, "%s", str, 256);
+    }
 }
