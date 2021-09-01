@@ -82,7 +82,8 @@ public:
 	CMATERIAL()
 	{
 		memset(this, 0x00, sizeof(CMATERIAL));
-		m_pTexture->Release();
+		//m_pTexture->Release();
+		m_pTexture = nullptr;
 	}
 	//デストラクタ
 	~CMATERIAL()
@@ -132,6 +133,7 @@ public:
 	static void Delete();
 
 	static void Render(CMODEL* modle,float mat[16],float mat_w[16],float v_eye[3]); //モデルをレンダリングする
+	static void Render(C_SKIN_MODEL* modle, float mat[16], float mat_w[16], float v_eye[3]);//スキンモデルのレンダリング
 	static void SetLightVec(float x, float y, float z, bool light_on);//平行光源の向きを入れる
 	static void SetLightPos(float x, float y, float z, float max);//点光源の位置と出力幅を入れる
 

@@ -156,8 +156,8 @@ unsigned __stdcall GameMainThread(void* p)
         //視野方向ベクトルを作成（視野方向ベクトル＝カメラの位置-注目点）
         float v_eye[3] = { eye[0] - center[0],eye[1] - center[1],eye[2] - center[2] };
 
-        Render::Render(mod,mat_WVP,mat_w,v_eye);//一つ目のモデル描画
-
+        Render::Render(skin_mod,mat_WVP,mat_w,v_eye);//一つ目のモデル描画
+        
         //原点からX方向に2移動
         float pos_two[3] = { 800.0f,0.0f,0.0f };//1つめの位置を変える
         Math3D::IdentityMatrix(mat_w);//行列を初期化

@@ -232,6 +232,45 @@ void CRender3D::Init()
 		return;
 	}
 
+	//頂点インプットレイアウトを定義
+	D3D11_INPUT_ELEMENT_DESC layout_skin[] =
+	{
+		{"POSITION",0,DXGI_FORMAT_R32G32B32_FLOAT   ,0,0, D3D11_INPUT_PER_VERTEX_DATA,0},
+		{"NORMAL",  0,DXGI_FORMAT_R32G32B32_FLOAT,   0,12,D3D11_INPUT_PER_VERTEX_DATA,0},
+		{"UV"   ,   0,DXGI_FORMAT_R32G32_FLOAT,      0,24,D3D11_INPUT_PER_VERTEX_DATA,0},
+		{"COLOR",   0,DXGI_FORMAT_R32G32B32A32_FLOAT,0,32,D3D11_INPUT_PER_VERTEX_DATA,0},
+		{"BI"   ,   0,DXGI_FORMAT_R32G32B32A32_UINT ,0,48,D3D11_INPUT_PER_VERTEX_DATA,0},
+		{"WE"   ,   0,DXGI_FORMAT_R32G32B32A32_FLOAT,0,64,D3D11_INPUT_PER_VERTEX_DATA,0},
+	};
+	UINT numElements_skin = sizeof(layout_skin) / sizeof(layout_skin[0]);
+
+	//頂点インプットレイアウトを作成・レイアウトをセット
+	hr = Dev::GetDevice()->CreateInputLayout(layout_skin, numElements_skin, pCompiledShader->GetBufferPointer(),
+		pCompiledShader->GetBufferSize(), &m_pVertexLayout);
+	if (FAILED(hr))
+	{
+		MessageBox(0, L"レイアウト作成失敗", NULL, MB_OK);
+		return;
+	}
+	SAFE_RELEASE(pCompiledShader);
+
+	//スキン用のコンスタントバッファ作成
+	D3D11_BUFFER_DESC cb_skin;
+	cb_skin.BindFlags           = D3D11_BIND_CONSTANT_BUFFER;
+	cb_skin.ByteWidth           = sizeof(CMODEL_BONE_BUFFER);
+	cb_skin.CPUAccessFlags      = D3D11_CPU_ACCESS_WRITE;
+	cb_skin.MiscFlags           = 0;
+	cb_skin.StructureByteStride = 0;
+	cb_skin.Usage               = D3D11_USAGE_DYNAMIC;
+
+	//ステータスを元にコンスタントバッファ
+	hr = Dev::GetDevice()->CreateBuffer(&cb_skin, NULL, &m_pConstantBufferSkin);
+	if (FAILED(hr))
+	{
+		MessageBox(0, L"スキン用コンスタントバッファ作成失敗", NULL, MB_OK);
+		return;
+	}
+
 	//-------------------------------
 
 	//メモリ内のHLSLのvs関数部分のコンパイル
@@ -321,10 +360,15 @@ void CRender3D::Init()
 //破棄メソッド
 void CRender3D::Delete()
 {
+	//通常モデル用の破棄
 	SAFE_RELEASE(m_pConstantBuffer);//コンスタントバッファ破棄
 	SAFE_RELEASE(m_pPixelShader);   //ピクセルシェーダー破棄
 	SAFE_RELEASE(m_pVertexLayout);  //頂点入力レイアウト破棄
 	SAFE_RELEASE(m_pVertexShader);  //バーテックスシェーダー
+	//スキンモデル用の破棄
+	SAFE_RELEASE(m_pConstantBufferSkin);//コンスタントバッファ破棄
+	SAFE_RELEASE(m_pVertexLayoutSkin);  //頂点入力レイアウト破棄
+	SAFE_RELEASE(m_pVertexShaderSkin);  //バーテックスシェーダー破棄
 }
 
 //モデルをレンダリングする
@@ -429,6 +473,110 @@ void CRender3D::Render(CMODEL* modle,float mat[16],float mat_w[16],float v_eye[3
 
 	
 }
+
+//スキンモデルのレンダリング
+void CRender3D::Render(C_SKIN_MODEL* modle, float mat[16], float mat_w[16], float v_eye[3])
+{
+	//頂点レイアウト
+	Dev::GetDeviceContext()->IASetInputLayout(m_pVertexLayoutSkin);
+
+	//使用するシェーダーの登録
+	Dev::GetDeviceContext()->VSSetShader(m_pVertexShaderSkin, NULL, 0);
+	Dev::GetDeviceContext()->PSSetShader(m_pPixelShader, NULL, 0);
+
+	//コンスタントバッファを使用するシェーダに登録
+	Dev::GetDeviceContext()->VSSetConstantBuffers(0, 1, &m_pConstantBuffer);
+	Dev::GetDeviceContext()->VSSetConstantBuffers(1, 1, &m_pConstantBufferSkin);
+	Dev::GetDeviceContext()->PSSetConstantBuffers(0, 1, &m_pConstantBuffer);
+	Dev::GetDeviceContext()->PSSetConstantBuffers(1, 1, &m_pConstantBufferSkin);
+
+
+	//プリミティブ・トポロジーをセット  D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP
+	Dev::GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	for (int i = 0; i < modle->m_material_max; i++)
+	{
+		//バーテックスバッファ登録
+		UINT stride = sizeof(CPOINT3D_SKIN_LAYOUT);
+		UINT offset = 0;
+		Dev::GetDeviceContext()->IASetVertexBuffers(0, 1, &modle->m_ppVertexBuffer[i], &stride, &offset);
+		//インデックスバッファ登録
+		Dev::GetDeviceContext()->IASetIndexBuffer(modle->m_ppIndexBuffer[i], DXGI_FORMAT_R16_UINT, 0);
+
+		//コンスタントバッファのデータ登録
+		D3D11_MAPPED_SUBRESOURCE pData;
+		if (SUCCEEDED(Dev::GetDeviceContext()->Map(m_pConstantBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &pData)))
+		{
+			CMODEL3D_BUFFER data;
+
+			//トランスフォーム行列情報コンスタントバッファに渡す
+			if (mat == nullptr)
+			{
+				Math3D::IdentityMatrix(data.m_mat);//ない場合は単位行列
+			}
+			else
+			{
+				memcpy(data.m_mat, mat, sizeof(float) * 16);
+			}
+
+			//法線用のワールド行列を渡す
+			if (mat_w == nullptr)
+			{
+				Math3D::IdentityMatrix(data.m_mat_w);//ない場合は単位行列を渡す
+			}
+			else
+			{
+				memcpy(data.m_mat_w, mat_w, sizeof(float) * 16);
+			}
+
+			//視野方向ベクトルを渡す
+			if (v_eye == nullptr)
+			{
+				memset(data.m_eye, 0x00, sizeof(data.m_eye));
+			}
+			else
+			{
+				data.m_eye[0] = v_eye[0];
+				data.m_eye[1] = v_eye[1];
+				data.m_eye[2] = v_eye[2];
+				data.m_eye[3] = 1.0f;
+			}
+
+			//平行ライトの値を渡す
+			memcpy(data.m_light_vec, m_light_vector, sizeof(m_light_vector));
+			//点ライトの値を渡す
+			memcpy(data.m_light_pos, m_light_pos, sizeof(m_light_pos));
+
+			//材質　アンビエントを渡す
+			memcpy(data.m_ambient, modle->m_Material[i].m_ambient, sizeof(data.m_ambient));
+			//材質　デフィーズを渡す
+			memcpy(data.m_diffuse, modle->m_Material[i].m_diffuse, sizeof(data.m_diffuse));
+			//材質　エミッシブを渡す
+			memcpy(data.m_emissive, modle->m_Material[i].m_emissive, sizeof(data.m_emissive));
+			//材質　スペキュラを渡す
+			memcpy(data.m_specular, modle->m_Material[i].m_specular, sizeof(data.m_specular));
+			for (int j = 0; j < 4; j++)
+			{
+				data.m_specular_power[j] = modle->m_Material[i].m_specular_power;
+			}
+
+			memcpy_s(pData.pData, pData.RowPitch, (void*)&data, sizeof(CMODEL3D_BUFFER));
+			//コンスタントバッファをシェーダに輸送
+			Dev::GetDeviceContext()->Unmap(m_pConstantBuffer, 0);
+		}
+
+		//テクスチャーサンプラを登録
+		Dev::GetDeviceContext()->PSSetSamplers(0, 1, Draw::GetSamplerState());
+		//テクスチャを登録
+		Dev::GetDeviceContext()->PSSetShaderResources(0, 1, &modle->m_Material[i].m_pTexture);
+
+		//登録した情報を元にポリゴン描画
+		Dev::GetDeviceContext()->DrawIndexed(modle->m_pindex_size[i] * 3, 0, 0);
+
+	}
+
+}
+
 
 //平行光源の向きを入れる
 void CRender3D::SetLightVec(float x, float y, float z, bool light_on)
