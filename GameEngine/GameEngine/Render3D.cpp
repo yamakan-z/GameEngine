@@ -89,16 +89,30 @@ const char* g_hlsl_sause_code =
     "}                                                     \n"	
 
 	//頂点スキン用シェーダ
-   "vertexOut vs_skin(vertex_skin_In IN)                   \n"
-   "{                                                      \n"
-   " vertexOut OUT;                                        \n"
-   " OUT.pos   = mul(IN.pos,transpose(mat));               \n"
-   " OUT.col   = IN.col;                                   \n"
-   " OUT.uv    = IN.uv;                                    \n"
-   " OUT.nor   = mul(IN.Nor,(float3x3)transpose(w_mat));   \n"//nor=w_mat[3×3]*法線(x,y,z)   
-   " OUT.pos_c = mul(IN.pos,transpose(w_mat));             \n"//pos=w_mat[4×4]*位置(x,y,z)
-   " return OUT;                                           \n"
-   "}                                                      \n"
+   "vertexOut vs_skin(vertex_skin_In IN)                    \n"
+   "{                                                       \n"
+   "  float4 pos=(float4)0.0f;                              \n"//ボーンの影響受けた頂点の位置
+   "  float3 nor=(float3)0.0f;                              \n"//ボーンの影響受けた頂点の法線
+   "                                                        \n"
+   "  int   index[4] ={IN.bi.x,IN.bi.y,IN.bi.z,In.bi.w};    \n"//BoneIDがint型なので配列に入れなおす
+   "  float weight[4]={IN.we.x,IN.we.y,IN.we.z,IN.we.w};    \n"//Weightがfloat4型なので配列に入れなおす
+   "                                                        \n"
+   "  for(int i=0;i<4;i++)                                  \n"//各ボーン行列×重みを頂点に加算する処理
+   " {                                                      \n"
+   "   float    w = weight[i];                              \n"//ウェイト値取得
+   "   float4x4 m = transpose(b_mat[index[i]]);             \n"//ボーンIDからボーン行列を取得
+   "   pos += w * mul(IN.pos,m);                            \n"//スキンした位置+＝重み×位置×ボーン行列
+   "   nor += w * mul(IN.Nor,(float3x3)m);                  \n"//スキンした法線+＝重み×法線×ボーン行列
+   " }                                                      \n"
+   "                                                        \n"//ビューイングパイプライン系の処理
+   "  vertexOut OUT;                                        \n"
+   "  OUT.pos   = mul(pos,transpose(mat));                  \n"//pos=wvp[4×4]*スキンした位置(x,y,z)
+   "  OUT.col   = IN.col;                                   \n"
+   "  OUT.uv    = IN.uv;                                    \n"
+   "  OUT.nor   = mul(nor,(float3x3)transpose(w_mat));      \n"//nor=w_mat[3×3]*法線(x,y,z)   
+   "  OUT.pos_c = mul(pos,transpose(w_mat));                \n"//pos=w_mat[4×4]*位置(x,y,z)
+   "  return OUT;                                           \n"
+   "}                                                       \n"
 
 	//ピクセルシェーダ
    "float4 ps(vertexOut IN) :SV_Target                                 \n"
@@ -493,6 +507,25 @@ void CRender3D::Render(C_SKIN_MODEL* modle, float mat[16], float mat_w[16], floa
 
 	//プリミティブ・トポロジーをセット  D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP
 	Dev::GetDeviceContext()->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+	//ボーンコンスタントバッファに入れる関数
+	CMODEL_BONE_BUFFER bones;
+	//bonesの初期化
+	for (int i = 0; i < modle->m_bone_max; i++)
+	{
+		Math3D::IdentityMatrix(bones.m_mat[i]);
+	}
+	//bonesに各ボーンの姿勢行列とアニメーション行列から現在の姿勢を求める
+
+	//ボーンに親子関係を求める
+
+	//ボーン用のコンスタントバッファをGPUに送る
+	D3D11_MAPPED_SUBRESOURCE pData;
+	if (SUCCEEDED(Dev::GetDeviceContext()->Map(m_pConstantBufferSkin, 0, D3D11_MAP_WRITE_DISCARD, 0, &pData)))
+	{
+		memcpy_s(pData.pData, pData.RowPitch, (void*)&bones, sizeof(CMODEL_BONE_BUFFER));
+		Dev::GetDeviceContext()->Unmap(m_pConstantBufferSkin, 0);
+	}
 
 	for (int i = 0; i < modle->m_material_max; i++)
 	{
