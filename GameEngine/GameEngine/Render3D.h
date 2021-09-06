@@ -138,6 +138,8 @@ public:
 	static void SetLightPos(float x, float y, float z, float max);//点光源の位置と出力幅を入れる
 
 private:
+	static void SkinAnimation(C_SKIN_MODEL* modle, CMODEL_BONE_BUFFER* bones, int bone_id, float mat_ani[16]);//ボーンにアニメーション情報を入れるF
+
 	static float m_light_vector[4];//平行光源（方向）
 	static float m_light_pos[4];//点光源（位置）
 	static ID3D11VertexShader* m_pVertexShader;   //バーテックスシェーダー

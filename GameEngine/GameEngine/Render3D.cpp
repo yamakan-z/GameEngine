@@ -516,7 +516,7 @@ void CRender3D::Render(C_SKIN_MODEL* modle, float mat[16], float mat_w[16], floa
 		Math3D::IdentityMatrix(bones.m_mat[i]);
 	}
 	//bonesに各ボーンの姿勢行列とアニメーション行列から現在の姿勢を求める
-
+	SkinAnimation(modle, &bones, 6, nullptr);
 	//ボーンに親子関係を求める
 
 	//ボーン用のコンスタントバッファをGPUに送る

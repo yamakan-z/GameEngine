@@ -154,6 +154,7 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="Render3D.cpp" />
+    <ClCompile Include="SkinAnimation.cpp" />
     <ClCompile Include="TaskSystem.cpp" />
     <ClCompile Include="WICTextureLoader11.cpp" />
     <ClCompile Include="WindowCreate.cpp" />

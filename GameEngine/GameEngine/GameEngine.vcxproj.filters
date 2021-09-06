@@ -96,6 +96,9 @@
     <ClCompile Include="ModelSkinCreate3D.cpp">
       <Filter>ソース ファイル\3Dモデル描画</Filter>
     </ClCompile>
+    <ClCompile Include="SkinAnimation.cpp">
+      <Filter>ソース ファイル\3Dモデル描画</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="DirectXTex.h">
