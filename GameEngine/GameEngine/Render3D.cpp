@@ -94,7 +94,7 @@ const char* g_hlsl_sause_code =
    "  float4 pos=(float4)0.0f;                              \n"//ボーンの影響受けた頂点の位置
    "  float3 nor=(float3)0.0f;                              \n"//ボーンの影響受けた頂点の法線
    "                                                        \n"
-   "  int   index[4] ={IN.bi.x,IN.bi.y,IN.bi.z,In.bi.w};    \n"//BoneIDがint型なので配列に入れなおす
+   "  int   index[4] ={IN.bi.x,IN.bi.y,IN.bi.z,IN.bi.w};    \n"//BoneIDがint型なので配列に入れなおす
    "  float weight[4]={IN.we.x,IN.we.y,IN.we.z,IN.we.w};    \n"//Weightがfloat4型なので配列に入れなおす
    "                                                        \n"
    "  for(int i=0;i<4;i++)                                  \n"//各ボーン行列×重みを頂点に加算する処理
@@ -517,7 +517,9 @@ void CRender3D::Render(C_SKIN_MODEL* modle, float mat[16], float mat_w[16], floa
 	}
 	//bonesに各ボーンの姿勢行列とアニメーション行列から現在の姿勢を求める
 	SkinAnimation(modle, &bones, 6, nullptr);
+
 	//ボーンに親子関係を求める
+	Relationship(modle, &modle->m_bone[0], &bones, nullptr);
 
 	//ボーン用のコンスタントバッファをGPUに送る
 	D3D11_MAPPED_SUBRESOURCE pData;

@@ -139,6 +139,7 @@ public:
 
 private:
 	static void SkinAnimation(C_SKIN_MODEL* modle, CMODEL_BONE_BUFFER* bones, int bone_id, float mat_ani[16]);//ボーンにアニメーション情報を入れるF
+	static void Relationship(C_SKIN_MODEL* modle, BONE* bone, CMODEL_BONE_BUFFER* bones, float mat[16]);//親子関係
 
 	static float m_light_vector[4];//平行光源（方向）
 	static float m_light_pos[4];//点光源（位置）
